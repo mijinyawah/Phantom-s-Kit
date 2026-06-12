@@ -581,6 +581,42 @@
       padding-bottom: 0;
     }
 
+    .inline-toggle {
+      margin-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 10px;
+    }
+
+    .inline-toggle summary {
+      cursor: pointer;
+      color: #cfd5e8;
+      font-size: 13px;
+      list-style: none;
+    }
+
+    .inline-toggle summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .inline-toggle summary::before {
+      content: "+";
+      display: inline-block;
+      width: 14px;
+      color: var(--gold);
+      margin-right: 6px;
+    }
+
+    .inline-toggle[open] summary::before {
+      content: "-";
+    }
+
+    .slot-mods {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
     .detail-head,
     .inventory-head {
       display: flex;
@@ -1227,6 +1263,21 @@
       return "mw-low";
     }
 
+    function getModsBySlot(build) {
+      if (!build || !Array.isArray(build.mods)) return {};
+      const slotOrder = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const grouped = {};
+      slotOrder.forEach((slot, index) => {
+        grouped[slot] = build.mods.slice(index * 2, index * 2 + 2);
+      });
+      return grouped;
+    }
+
+    function normalizeArmorSlot(slot) {
+      if (slot === "Bond" || slot === "Mark" || slot === "Cloak") return "Class";
+      return slot;
+    }
+
     function locationClass(loc) {
       return "loc-" + (loc || "vault");
     }
@@ -1346,6 +1397,7 @@
           </div>
 
           <div class="mods-wrap">
+            <div class="section-kicker">Suggested Gear Mods</div>
             <div class="chips">
               ${build.mods.map((mod) => `<span class="chip">${escapeHtml(mod)}</span>`).join("")}
             </div>
@@ -1363,7 +1415,7 @@
               <section class="detail-card">
                 <div class="section-kicker">Armor Details</div>
                 <div class="detail-list">
-                  ${build.armor.map((piece) => renderArmorDetail(piece)).join("")}
+                  ${build.armor.map((piece) => renderArmorDetail(piece, build)).join("")}
                 </div>
               </section>
               <section class="detail-card">
@@ -1439,7 +1491,8 @@
       `;
     }
 
-    function renderArmorDetail(piece) {
+    function renderArmorDetail(piece, build) {
+      const slotMods = getModsBySlot(build)[normalizeArmorSlot(piece.slot)] || [];
       return `
         <div class="detail-entry">
           <div class="detail-head">
@@ -1458,6 +1511,14 @@
             <span class="mini-stat">G ${piece.g}</span>
           </div>
           <p class="detail-note">${escapeHtml(piece.note)}</p>
+          ${slotMods.length ? `
+            <details class="inline-toggle">
+              <summary>Suggested mods for this piece</summary>
+              <div class="slot-mods">
+                ${slotMods.map((mod) => `<span class="chip">${escapeHtml(mod)}</span>`).join("")}
+              </div>
+            </details>
+          ` : ""}
         </div>
       `;
     }
