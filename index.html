@@ -1,0 +1,1924 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phantom's Kit</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2313161f'/%3E%3Cpath d='M32 10l6.5 13.5L52 28l-10 9.8L44.5 52 32 45l-12.5 7L22 37.8 12 28l13.5-4.5z' fill='%23f5b942'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0d0f18;
+      --surface: #13161f;
+      --surface2: #1c1f2e;
+      --surface3: #22263a;
+      --border: #252a3d;
+      --text: #e2e5f0;
+      --muted: #6b7394;
+      --gold: #f5b942;
+      --gold-bg: rgba(245, 185, 66, 0.1);
+      --green: #34d399;
+      --orange: #fb923c;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --purple: #a78bfa;
+      --warlock: #9b5de5;
+      --titan: #3a86ff;
+      --void: #7c3aed;
+      --solar: #f97316;
+      --arc: #38bdf8;
+      --strand: #4ade80;
+      --stasis: #93c5fd;
+      --kinetic: #94a3b8;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      color-scheme: dark;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(124, 58, 237, 0.22), transparent 28%),
+        radial-gradient(circle at top right, rgba(58, 134, 255, 0.18), transparent 26%),
+        linear-gradient(180deg, #0d0f18 0%, #111420 48%, #0a0d15 100%);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+      background: none;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 18px 0 48px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(18px);
+      background: rgba(13, 15, 24, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 24px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(245, 185, 66, 0.24), rgba(124, 58, 237, 0.22));
+      border: 1px solid rgba(245, 185, 66, 0.28);
+      color: var(--gold);
+      font-size: 20px;
+    }
+
+    .brand-copy h1 {
+      font-size: 18px;
+      letter-spacing: 0.04em;
+    }
+
+    .brand-copy p {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tabs,
+    .activity-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab,
+    .activity-tab,
+    .ghost-btn,
+    .primary-btn,
+    .danger-btn,
+    .toggle-btn {
+      border-radius: 999px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      transition: 160ms ease;
+    }
+
+    .tab,
+    .activity-tab,
+    .ghost-btn,
+    .toggle-btn {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tab.active {
+      background: rgba(155, 93, 229, 0.16);
+      border-color: rgba(155, 93, 229, 0.42);
+      color: #fff;
+    }
+
+    .tab.active[data-char="titan"] {
+      background: rgba(58, 134, 255, 0.16);
+      border-color: rgba(58, 134, 255, 0.42);
+    }
+
+    .activity-tab.active {
+      background: rgba(245, 185, 66, 0.12);
+      border-color: rgba(245, 185, 66, 0.35);
+      color: #fff;
+    }
+
+    .tab:hover,
+    .activity-tab:hover,
+    .ghost-btn:hover,
+    .primary-btn:hover,
+    .danger-btn:hover,
+    .toggle-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .power-chip {
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .power-chip strong {
+      color: var(--gold);
+      font-size: 13px;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, rgba(245, 185, 66, 0.85), rgba(251, 146, 60, 0.92));
+      color: #111;
+      font-weight: 700;
+      border-color: rgba(245, 185, 66, 0.52);
+    }
+
+    .danger-btn {
+      background: rgba(248, 113, 113, 0.08);
+      color: #ffd0d0;
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    .ghost-btn {
+      color: var(--text);
+    }
+
+    .sync-banner,
+    .activity-bar,
+    .card,
+    .empty-state {
+      background: linear-gradient(180deg, rgba(19, 22, 31, 0.94), rgba(15, 18, 28, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .activity-bar {
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .sync-banner {
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sync-banner strong {
+      color: var(--green);
+    }
+
+    .card {
+      padding: 26px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 180px;
+      background: linear-gradient(120deg, rgba(124, 58, 237, 0.15), rgba(58, 134, 255, 0.08), transparent 65%);
+      pointer-events: none;
+    }
+
+    .card > * {
+      position: relative;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .build-title {
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1.05;
+      margin-bottom: 14px;
+      max-width: 760px;
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .pill,
+    .chip,
+    .badge,
+    .mw-badge,
+    .mini-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .pill.exotic {
+      color: var(--gold);
+      background: var(--gold-bg);
+      border-color: rgba(245, 185, 66, 0.28);
+    }
+
+    .pill.warn {
+      color: #ffd5b8;
+      background: rgba(251, 146, 60, 0.12);
+      border-color: rgba(251, 146, 60, 0.28);
+    }
+
+    .pill.note {
+      color: #d7e7ff;
+      background: rgba(96, 165, 250, 0.12);
+      border-color: rgba(96, 165, 250, 0.28);
+    }
+
+    .concept {
+      max-width: 780px;
+      color: #c7cbdb;
+      margin-bottom: 24px;
+      font-size: 15px;
+    }
+
+    .gear-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .panel h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .item-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 86px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .item-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .item-slot {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding-top: 2px;
+    }
+
+    .item-name {
+      font-weight: 600;
+    }
+
+    .item-name.exotic {
+      color: var(--gold);
+    }
+
+    .item-sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 6px 10px;
+      align-self: center;
+      white-space: nowrap;
+    }
+
+    .loc-char {
+      background: rgba(52, 211, 153, 0.12);
+      color: #bef8df;
+      border-color: rgba(52, 211, 153, 0.2);
+    }
+
+    .loc-vault {
+      background: rgba(167, 139, 250, 0.12);
+      color: #e0d7ff;
+      border-color: rgba(167, 139, 250, 0.22);
+    }
+
+    .loc-titan {
+      background: rgba(251, 146, 60, 0.12);
+      color: #ffd9be;
+      border-color: rgba(251, 146, 60, 0.22);
+    }
+
+    .loc-warlock,
+    .loc-hunter {
+      background: rgba(96, 165, 250, 0.12);
+      color: #d8e9ff;
+      border-color: rgba(96, 165, 250, 0.24);
+    }
+
+    .mods-wrap {
+      margin-bottom: 20px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.04);
+      color: #d9dded;
+    }
+
+    .mods-note {
+      color: var(--muted);
+    }
+
+    .toggle-btn {
+      width: 100%;
+      text-align: left;
+      font-weight: 600;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+
+    .toggle-btn span {
+      color: var(--muted);
+      font-weight: 500;
+      margin-left: 6px;
+    }
+
+    .details {
+      display: none;
+      gap: 16px;
+    }
+
+    .details.open {
+      display: grid;
+    }
+
+    .stats-grid,
+    .detail-grid,
+    .live-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .detail-grid,
+    .live-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat-card,
+    .detail-card,
+    .inventory-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .stat-label,
+    .section-kicker {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 34px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .stat-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .stat-bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .stat-note,
+    .detail-note,
+    .artifact-tip,
+    .subtle-copy,
+    .helper-text {
+      color: var(--muted);
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .detail-entry {
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .detail-entry:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .detail-head,
+    .inventory-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .detail-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-weight: 600;
+    }
+
+    .mini-stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .mini-stat {
+      padding: 4px 8px;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .mw-badge {
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .mw-low {
+      background: rgba(248, 113, 113, 0.12);
+      color: #ffd7d7;
+      border-color: rgba(248, 113, 113, 0.18);
+    }
+
+    .mw-mid {
+      background: rgba(251, 146, 60, 0.12);
+      color: #ffe0c9;
+      border-color: rgba(251, 146, 60, 0.2);
+    }
+
+    .mw-high {
+      background: rgba(52, 211, 153, 0.12);
+      color: #c7f6df;
+      border-color: rgba(52, 211, 153, 0.18);
+    }
+
+    .element-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .artifact-list {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .artifact-row {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .artifact-col {
+      color: var(--gold);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding-top: 1px;
+    }
+
+    .inventory-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .inventory-entry {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 10px;
+    }
+
+    .inventory-entry:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .slot-group {
+      margin-bottom: 12px;
+    }
+
+    .slot-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .slot-group h5 {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 8px;
+    }
+
+    .empty-state {
+      padding: 28px;
+      color: var(--muted);
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 14, 0.56);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 18;
+    }
+
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(380px, 100vw);
+      height: 100vh;
+      background: linear-gradient(180deg, #10131c, #0c0f17);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: var(--shadow);
+      transform: translateX(102%);
+      transition: transform 220ms ease;
+      z-index: 20;
+      overflow-y: auto;
+    }
+
+    .drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-inner {
+      padding: 24px 20px 36px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .drawer-head h2 {
+      font-size: 22px;
+    }
+
+    .close-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .settings-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .settings-card h3 {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: #cfd5e8;
+      font-size: 13px;
+    }
+
+    .field input {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+    }
+
+    .status-good {
+      color: var(--green);
+    }
+
+    .status-bad {
+      color: #ffbbbb;
+    }
+
+    .status-progress {
+      color: var(--blue);
+    }
+
+    .stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .muted-link {
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 860px) {
+      .gear-grid,
+      .detail-grid,
+      .live-grid,
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .topbar-right {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .shell {
+        width: min(100% - 20px, 100%);
+        padding-top: 10px;
+      }
+
+      .card,
+      .sync-banner,
+      .activity-bar {
+        border-radius: 18px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .item-row {
+        grid-template-columns: 1fr;
+      }
+
+      .artifact-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="settingsDrawer" aria-hidden="true">
+    <div class="drawer-inner">
+      <div class="drawer-head">
+        <div>
+          <h2>Settings</h2>
+          <p class="helper-text">Bungie auth, sync, and local data.</p>
+        </div>
+        <button class="close-btn" id="closeDrawerBtn" aria-label="Close settings">✕</button>
+      </div>
+      <div id="settingsContent"></div>
+    </div>
+  </aside>
+
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">✦</div>
+        <div class="brand-copy">
+          <h1>Phantom's Kit</h1>
+          <p>Destiny 2 build optimizer and vault-aware loadout planner</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="tabs" id="charTabs"></div>
+        <div class="power-chip" id="powerChip"></div>
+        <button class="ghost-btn" id="settingsToggleBtn">Settings</button>
+      </div>
+    </header>
+
+    <section class="activity-bar">
+      <div class="activity-tabs" id="activityTabs"></div>
+    </section>
+
+    <section class="sync-banner hidden" id="syncBanner"></section>
+
+    <section id="buildMount"></section>
+  </main>
+
+  <script>
+    const TOKEN_URL = "https://www.bungie.net/Platform/App/OAuth/token/";
+    const AUTHORIZE_URL = "https://www.bungie.net/en/OAuth/Authorize";
+    const PROFILE_COMPONENTS = "100,102,200,201,202";
+    const SLOT_NAMES = {
+      1498876634: "Kinetic",
+      2465295065: "Energy",
+      953998645: "Heavy",
+      3448274439: "Helmet",
+      3551918588: "Arms",
+      14239492: "Chest",
+      20886954: "Legs",
+      1585787867: "Class",
+    };
+    const CLASS_MAP = { 0: "Titan", 1: "Hunter", 2: "Warlock" };
+    const CLASS_TYPE_BY_KEY = { titan: 0, hunter: 1, warlock: 2 };
+    const EL_COLORS = {
+      void: "#7c3aed",
+      solar: "#f97316",
+      arc: "#38bdf8",
+      strand: "#4ade80",
+      stasis: "#93c5fd",
+      kinetic: "#94a3b8",
+    };
+    const LOC_LABELS = {
+      char: "Equipped",
+      vault: "Vault",
+      titan: "On Titan",
+      warlock: "On Warlock",
+      hunter: "On Hunter",
+    };
+
+    const BUILDS = {
+      warlock: {
+        casual: {
+          name: "Void Devour Battlemage",
+          subclass: "🌀 Void",
+          exotic: "Karnstein Armlets",
+          concept: "Two healing loops at once. Devour heals on every kill; Karnstein Armlets stack bonus healing on top. In strikes you're near-unkillable as long as kills keep coming. Every Void kill refreshes grenade, melee, and rift.",
+          armor: [
+            { slot: "Helmet", name: "Smoke Jumper Hood", loc: "char", mw: 5, h: 19, c: 5, g: 29, note: "Best stat helmet. MW 5→10." },
+            { slot: "Arms", name: "Karnstein Armlets", loc: "char", mw: 7, h: 22, c: 11, g: 6, note: "Exotic — melee kills heal. MW 7→10.", exotic: true },
+            { slot: "Chest", name: "AION Renewal Robes", loc: "char", mw: 5, h: 15, c: 28, g: 9, note: "⚠ Power 40 — needs infusion. Best Class chest. MW 5→10." },
+            { slot: "Legs", name: "Sovereign Legs", loc: "char", mw: 9, h: 6, c: 26, g: 24, note: "MW 9→10 — one step from full bonus." },
+            { slot: "Bond", name: "Exodus Down Bond", loc: "char", mw: 0, h: 25, c: 0, g: 30, note: "Highest Grenade bond. MW 0→10 — priority." },
+          ],
+          weapons: [
+            { slot: "Energy", name: "Gnawing Hunger", el: "void", type: "Auto Rifle", pw: 399, mw: 10, loc: "char" },
+            { slot: "Special", name: "Hawthorne's Field-Forged Shotgun", el: "stasis", type: "Shotgun", pw: 379, mw: 1, loc: "vault", note: "⚠ Power 379, pull from vault. MW 1→10." },
+            { slot: "Heavy", name: "Circular Logic", el: "strand", type: "Machine Gun", pw: 400, mw: 10, loc: "char" },
+          ],
+          mods: ["Harmonic Siphon", "Ashes to Assets", "Grenade Font", "Impact Induction", "Concussive Dampener", "Void Resistance", "Better Already", "Invigoration", "Reaper", "Bomber"],
+          modsNote: "Grenade Font (active) temporarily pushes Grenade over 100. +10 Health on helm + legs → Health ~82.",
+          stats: { health: 62, cls: 70, grenade: 68 },
+          statNotes: {
+            health: "Below 100 — Karnstein melee healing compensates in casual.",
+            cls: "✓ Good rift regen from chest + legs.",
+            grenade: "Below 100 — push with mods for secondary cooldown bonus.",
+          },
+          artifact: [
+            { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Rapid Fire" },
+            { col: 2, text: "Diviner's Discount — scavenger mods cost 1 energy" },
+            { col: 3, text: "Elemental Benevolence — granting Void buff to allies restores class energy" },
+            { col: 4, text: "Elemental Coalescence · Elemental Daze" },
+            { col: 5, text: "⭐ Shieldcrush — Void Overshield → melee faster + more damage · Elemental Overdrive — Void pickup → increased Void weapon damage" },
+          ],
+          artifactTip: "Equip Echo of Sacrifice (Void fragment) — picking up an Orb grants Void Overshield, which passively triggers Shieldcrush.",
+        },
+        veteran: {
+          name: "Solar Well Support",
+          subclass: "☀️ Solar",
+          exotic: "Boots of the Assembler",
+          note: "📌 Starfire Protocol doubles Fusion Grenades for pure DPS. BotA is better for team support.",
+          warn: "⚡ Power 398 — below ~440 for GMs.",
+          concept: "Well of Radiance anchor for raids. Your Well spawns Noble Seekers — auto-targeting orbs that find allies, heal and grant damage bonuses at 40m range. Drop a Well during DPS windows, let Seekers do support work, generate Orbs for the team.",
+          armor: [
+            { slot: "Helmet", name: "Smoke Jumper Hood", loc: "char", mw: 5, h: 19, c: 5, g: 29, note: "MW 5→10." },
+            { slot: "Arms", name: "Lightkin Gloves", loc: "char", mw: 7, h: 6, c: 24, g: 15, note: "MW 7→10." },
+            { slot: "Chest", name: "AION Renewal Robes", loc: "char", mw: 5, h: 28, c: 0, g: 9, note: "Best Health chest. MW 5→10." },
+            { slot: "Legs", name: "Boots of the Assembler", loc: "char", mw: 0, h: 30, c: 0, g: 20, note: "★ Exotic — MW 0→10 priority. Top Health roll on any legs.", exotic: true },
+            { slot: "Bond", name: "Exodus Down Bond", loc: "char", mw: 0, h: 25, c: 0, g: 30, note: "Best Grenade bond. MW 0→10." },
+          ],
+          weapons: [
+            { slot: "Energy", name: "No Hesitation", el: "solar", type: "Auto Rifle", pw: 391, mw: 10, loc: "titan", note: "⚠ Transfer from Titan. Solar synergy." },
+            { slot: "Special", name: "Nox Sidereal IV", el: "stasis", type: "Fusion Rifle", pw: 398, mw: 5, loc: "titan", note: "⚠ Transfer from Titan. MW 5→10." },
+            { slot: "Heavy", name: "Temporal Clause", el: "solar", type: "Machine Gun", pw: 400, mw: 1, loc: "char", note: "MW 1→10. Solar synergy." },
+          ],
+          mods: ["Harmonic Siphon", "Ashes to Assets", "Grenade Font", "Momentum Transfer", "Concussive Dampener", "Solar Resistance", "Better Already", "Innervation", "Reaper", "Outreach"],
+          modsNote: "+10 Grenade on gauntlets → 96; Grenade Font takes it past 100 ✓. +10 Health on helm + legs → Health ~86.",
+          stats: { health: 66, cls: 41, grenade: 86 },
+          statNotes: {
+            health: "Below 100 — Well of Radiance covers survivability during DPS.",
+            cls: "Low — Noble Seekers refund Class energy when they reach allies.",
+            grenade: "Push to 100+ with Grenade Font for secondary bonus.",
+          },
+          artifact: [
+            { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Shotgun" },
+            { col: 2, text: "Flame, Fiber, and Freeze — Solar Orbs on every Solar kill" },
+            { col: 3, text: "⭐ Fever and Chill — rapid Solar precision hits grant Radiant · Elemental Benevolence — granting Radiant to allies refills class energy" },
+            { col: 4, text: "Cauterized Darkness — Stasis/Strand enemies take more Solar damage inside Well" },
+            { col: 5, text: "⭐ Shieldcrush — while Radiant, grenade faster + more damage · Radiant Shrapnel — Solar explosions + Scorch while Radiant" },
+          ],
+          artifactTip: "Precision hits → Fever and Chill → Radiant → Shieldcrush (faster grenades) + Radiant Shrapnel (free Solar explosions). Well grants Radiant to allies → Elemental Benevolence → instant class energy.",
+        },
+        runner: {
+          name: "Void Sprint Battlemage",
+          subclass: "🌀 Void",
+          exotic: "Transversive Steps",
+          warn: "⚠ Your Transversive Steps is a Year 1 legacy piece (Power:10). Perk still works — farm a fresh copy for better stats.",
+          concept: "Built around Transversive Steps: stowed Energy weapons auto-reload while sprinting. Sprint in, delete ads with Gnawing Hunger, sprint out — it reloads itself while stowed. Void kills feed Devour healing. Praxic Blade in the Kinetic slot: throw to seek targets, guard to reflect projectiles, chain heavy melee. Never stop moving.",
+          armor: [
+            { slot: "Helmet", name: "Smoke Jumper Hood", loc: "char", mw: 5, h: 19, c: 5, g: 29, note: "MW 5→10." },
+            { slot: "Arms", name: "Lightkin Gloves", loc: "char", mw: 7, h: 34, c: 6, g: 15, note: "Best stat gauntlets on Warlock. MW 7→10." },
+            { slot: "Chest", name: "Shrewd Survivor Robe", loc: "char", mw: 0, h: 13, c: 0, g: 22, note: "MW 0→10." },
+            { slot: "Legs", name: "Transversive Steps", loc: "char", mw: 0, h: 0, c: 10, g: 5, note: "⚠ Year 1 legacy — zero stat contribution. Farm fresh from exotic engrams.", exotic: true, legacy: true },
+            { slot: "Bond", name: "Exodus Down Bond", loc: "char", mw: 0, h: 25, c: 0, g: 30, note: "MW 0→10 priority." },
+          ],
+          weapons: [
+            { slot: "Kinetic", name: "Praxic Blade", el: "kinetic", type: "Sword (Exotic)", pw: 407, loc: "char", note: "Throw to seek, guard to reflect, chain heavy melee.", exotic: true },
+            { slot: "Energy", name: "Gnawing Hunger", el: "void", type: "Auto Rifle", pw: 399, mw: 10, loc: "char", note: "Transversive target — auto-reloads while stowed + sprinting. Void kills feed Devour." },
+            { slot: "Heavy", name: "Circular Logic", el: "strand", type: "Machine Gun", pw: 400, mw: 10, loc: "char" },
+          ],
+          mods: ["Harmonic Siphon", "Super Font", "Grenade Font", "Impact Induction", "Concussive Dampener", "Void Resistance", "Weapon Font", "Better Already", "Reaper", "Bomber"],
+          modsNote: "Class stat critically low at 21 — slot +10 Class mods on every non-exotic piece you can.",
+          stats: { health: 66, cls: 21, grenade: 71 },
+          statNotes: {
+            health: "Legacy Transversive contributes nothing. Push with Health mods.",
+            cls: "Very low — Devour healing covers survivability. Rifting rarely needed in casual.",
+            grenade: "Solid for casual. Push toward 100+ with mods.",
+          },
+          artifact: [
+            { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Rapid Fire" },
+            { col: 2, text: "Rapid Precision Rifling — Scout Rifle precision hits → reload speed + reduced flinch" },
+            { col: 3, text: "Reciprocal Draw — rapid non-sidearm kills boost sidearm damage on draw" },
+            { col: 4, text: "Elemental Coalescence · Elemental Daze" },
+            { col: 5, text: "Elemental Overdrive — pickup → increased matching weapon damage · Shieldcrush — Void Overshield → melee faster/stronger" },
+          ],
+          artifactTip: "Artifact isn't optimized for Transversive this season. Champion coverage (Col 1) + weapon uptime. Prioritize +10 Class mods to compensate the 21 Class gap.",
+        },
+      },
+      titan: {
+        casual: {
+          name: "Solar Sunspot Paladin",
+          subclass: "☀️ Solar",
+          exotic: "Hallowfire Heart",
+          note: "📌 Loreley Splendor Helm is current #1 Solo Titan exotic — not in your collection yet. Farm from exotic engrams.",
+          concept: "Near-immortal frontliner. Throwing Hammers create Sunspots on impact — standing in them heals and boosts ability regen. Hallowfire Heart (reworked): ability final blows create Sunfire Furnace stacks, grenade kills trigger ignitions, ability regen boosted while Hammer is charged. Consecration slide-slam clears groups.",
+          armor: [
+            { slot: "Helmet", name: "Shrewd Survivor Helm", loc: "char", mw: 5, h: 24, c: 5, g: 23, note: "Best Health+Grenade helmet on Titan. MW 5→10." },
+            { slot: "Arms", name: "Ferropotent Gauntlets", loc: "char", mw: 0, h: 15, c: 0, g: 29, note: "Highest Grenade gauntlets. MW 0→10 — priority." },
+            { slot: "Chest", name: "Hallowfire Heart", loc: "vault", mw: 0, h: 0, c: 0, g: 25, note: "⚠ Vault (pwr 363) — pull and infuse. Grn:25 version pushes Grenade over 100. On-char (Cls:30) if you want more Barricade.", exotic: true },
+            { slot: "Legs", name: "Shrewd Survivor Greaves", loc: "char", mw: 5, h: 29, c: 22, g: 26, note: "Best legs on Titan. MW 5→10." },
+            { slot: "Mark", name: "Any Mark", loc: "char", mw: 0, h: 0, c: 0, g: 0, note: "Class items have 0 base stats — aesthetics only." },
+          ],
+          weapons: [
+            { slot: "Energy", name: "No Hesitation", el: "solar", type: "Auto Rifle", pw: 391, mw: 10, loc: "char", note: "Solar synergy. Healing rounds stack with Sunspot healing." },
+            { slot: "Special", name: "Nox Sidereal IV", el: "stasis", type: "Fusion Rifle", pw: 398, mw: 5, loc: "char", note: "MW 5→10. Best burst weapon on Titan." },
+            { slot: "Heavy", name: "Falling Guillotine", el: "void", type: "Sword", pw: 392, mw: 10, loc: "char", note: "Already MW10. Charge in, cleave ads, retreat to Sunspot." },
+          ],
+          mods: ["Harmonic Siphon", "Ashes to Assets", "Heavy Handed", "Grenade Font", "Concussive Dampener", "Solar Resistance", "Better Already", "Invigoration", "Reaper", "Bomber"],
+          modsNote: "+10 Health on helm + gauntlets + chest → Health ~98. Grenade at 103 ✓ with vault Hallowfire.",
+          stats: { health: 68, cls: 27, grenade: 103 },
+          statNotes: {
+            health: "Below 100 — Sunspot healing compensates for casual content.",
+            cls: "Low Barricade — Sunspot + Hallowfire cover ability uptime.",
+            grenade: "✅ Over 100 — secondary Grenade bonus active (vault Hallowfire required).",
+          },
+          artifact: [
+            { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Shotgun" },
+            { col: 2, text: "Flame, Fiber, and Freeze — Solar Orbs on every Solar kill" },
+            { col: 3, text: "⭐ Fever and Chill — rapid Solar precision hits grant Radiant" },
+            { col: 4, text: "Cauterized Darkness — Stasis/Strand enemies take more Solar damage · Elemental Daze" },
+            { col: 5, text: "⭐⭐ Shieldcrush — while Radiant, grenade faster + more damage · Radiant Shrapnel — Solar explosions + Scorch while Radiant" },
+          ],
+          artifactTip: "Hallowfire charges grenades → Fever and Chill → Radiant → Shieldcrush DOUBLES grenade regen → Radiant Shrapnel turns every weapon burst into free Solar explosions.",
+        },
+        veteran: {
+          name: "Void Shield Paladin",
+          subclass: "🌀 Void",
+          exotic: "Mask of the Quiet One",
+          warn: "⚡ Power 383 — below ~440 for GMs. Focus pinnacle sources.",
+          note: "📌 GM meta: Synthoceps + Consecration. Synthoceps in vault (pwr 10) — needs infusion first.",
+          concept: "Defensive anchor for raids. Ward of Dawn creates an indestructible bubble — teammates revive and reload inside, Weapons of Light grants 40% damage buff. Mask of the Quiet One refills ALL ability energy when you take hits. Heavy incoming fire makes you more dangerous, not less.",
+          armor: [
+            { slot: "Helmet", name: "Mask of the Quiet One", loc: "char", mw: 1, h: 17, c: 14, g: 16, note: "MW 1→10 — priority. Exotic: taking damage refills ALL ability energy.", exotic: true },
+            { slot: "Arms", name: "Ferropotent Gauntlets", loc: "char", mw: 0, h: 15, c: 0, g: 29, note: "Highest Grenade gauntlets. MW 0→10." },
+            { slot: "Chest", name: "Vigil of Heroes", loc: "vault", mw: 10, h: 30, c: 4, g: 13, note: "⚠ Vault (pwr 300) — needs infusion. Best Health chest. Already MW10." },
+            { slot: "Legs", name: "Shrewd Survivor Greaves", loc: "char", mw: 5, h: 29, c: 22, g: 26, note: "Best legs. MW 5→10." },
+            { slot: "Mark", name: "Any Mark", loc: "char", mw: 0, h: 0, c: 0, g: 0, note: "Class items: 0 base stats." },
+          ],
+          weapons: [
+            { slot: "Energy", name: "Old Sterling", el: "strand", type: "Auto Rifle", pw: 384, mw: 10, loc: "char", note: "Crafted with enhanced perks. Power 384 is low — prioritize power grinding.", crafted: true },
+            { slot: "Special", name: "Nox Sidereal IV", el: "stasis", type: "Fusion Rifle", pw: 398, mw: 5, loc: "char", note: "MW 5→10. Best GM champion stagger + DPS." },
+            { slot: "Heavy", name: "Falling Guillotine", el: "void", type: "Sword", pw: 392, mw: 10, loc: "char", note: "Void synergizes with Ward of Dawn." },
+          ],
+          mods: ["Harmonic Siphon", "Super Font", "Firepower", "Grenade Font", "Concussive Dampener", "Void Resistance", "Better Already", "Weapon Font", "Reaper", "Outreach"],
+          modsNote: "+10 Health on helm → hits 101 ✓. +10 Grenade on gauntlets + Grenade Font → Grenade ~104 ✓.",
+          stats: { health: 91, cls: 40, grenade: 84 },
+          statNotes: {
+            health: "MW Mask of the Quiet One (MW1→10) pushes over 100 for secondary bonus.",
+            cls: "Low Barricade — Ward of Dawn energy comes from Orbs and kills.",
+            grenade: "Push to 100+ with mods for secondary bonus.",
+          },
+          artifact: [
+            { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Shotgun" },
+            { col: 2, text: "Diviner's Discount — scavenger mods cost 1 energy · Void Siphon — Void Orbs on Void kills" },
+            { col: 3, text: "Elemental Benevolence — granting Void Overshield to allies restores your class energy" },
+            { col: 4, text: "Elemental Coalescence · Elemental Daze" },
+            { col: 5, text: "⭐ Shieldcrush — Void Overshield → melee faster/stronger · Elemental Overdrive — Void pickup → increased Void damage" },
+          ],
+          artifactTip: "Mask feeds ability energy when hit → Barricade → Void Overshield → Shieldcrush triggers → powerful melee → Orb → Elemental Benevolence. Loop.",
+        },
+      },
+    };
+
+    const CHARS = {
+      warlock: { label: "Warlock", power: 398, activities: ["casual", "veteran", "runner"] },
+      titan: { label: "Titan", power: 383, activities: ["casual", "veteran"] },
+    };
+
+    const ACT_LABEL = {
+      casual: "🎮 Strikes & Patrol",
+      veteran: "⚔️ Raids & Endgame",
+      runner: "🏃 Run & Gun",
+    };
+
+    const S = {
+      apiKey: localStorage.getItem("d2_apiKey") || "",
+      clientId: localStorage.getItem("d2_clientId") || "",
+      accessToken: localStorage.getItem("d2_accessToken") || "",
+      tokenExpiry: parseInt(localStorage.getItem("d2_tokenExpiry") || "0", 10),
+      char: localStorage.getItem("d2_char") || "warlock",
+      activity: localStorage.getItem("d2_activity") || "casual",
+      showDetails: localStorage.getItem("d2_showDetails") === "true",
+      liveInventory: readJson("d2_liveInventory"),
+      lastSync: localStorage.getItem("d2_lastSync") || "",
+      drawerOpen: false,
+      syncStatus: "",
+      syncError: "",
+      syncing: false,
+    };
+
+    function readJson(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function ls(key, value) {
+      S[key] = value;
+      if (typeof value === "object" && value !== null) {
+        localStorage.setItem("d2_" + key, JSON.stringify(value));
+      } else {
+        localStorage.setItem("d2_" + key, String(value));
+      }
+    }
+
+    function removeStored(key) {
+      localStorage.removeItem("d2_" + key);
+      if (key in S) {
+        S[key] = key === "liveInventory" ? null : "";
+      }
+    }
+
+    function isTokenValid() {
+      return Boolean(S.accessToken && S.tokenExpiry && Date.now() < S.tokenExpiry);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;",
+      }[char]));
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
+
+    function formatCountdown(ms) {
+      if (ms <= 0) return "expired";
+      const totalMinutes = Math.ceil(ms / 60000);
+      if (totalMinutes < 60) return totalMinutes + " min";
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours + " hr" + (minutes ? " " + minutes + " min" : "");
+    }
+
+    function getStatTone(value) {
+      if (value >= 100) return { klass: "status-good", color: "var(--green)" };
+      if (value >= 70) return { klass: "", color: "var(--blue)" };
+      if (value >= 50) return { klass: "", color: "var(--orange)" };
+      return { klass: "status-bad", color: "var(--red)" };
+    }
+
+    function getMwTone(mw) {
+      if (mw >= 8) return "mw-high";
+      if (mw >= 4) return "mw-mid";
+      return "mw-low";
+    }
+
+    function locationClass(loc) {
+      return "loc-" + (loc || "vault");
+    }
+
+    function locationLabel(loc) {
+      return LOC_LABELS[loc] || loc || "Stored";
+    }
+
+    function renderCharTabs() {
+      document.getElementById("charTabs").innerHTML = Object.entries(CHARS).map(([key, info]) => `
+        <button class="tab ${S.char === key ? "active" : ""}" data-char="${key}" type="button">
+          ${escapeHtml(info.label)}
+        </button>
+      `).join("");
+    }
+
+    function renderPowerChip() {
+      const info = CHARS[S.char];
+      document.getElementById("powerChip").innerHTML = `${escapeHtml(info.label)} Power <strong>${info.power}</strong>`;
+    }
+
+    function renderActivityTabs() {
+      const activities = CHARS[S.char].activities;
+      if (!activities.includes(S.activity)) {
+        S.activity = activities[0];
+        localStorage.setItem("d2_activity", S.activity);
+      }
+      document.getElementById("activityTabs").innerHTML = activities.map((activity) => `
+        <button class="activity-tab ${S.activity === activity ? "active" : ""}" data-activity="${activity}" type="button">
+          ${escapeHtml(ACT_LABEL[activity])}
+        </button>
+      `).join("");
+    }
+
+    function renderSyncBanner() {
+      const banner = document.getElementById("syncBanner");
+      if (!S.liveInventory || !S.lastSync) {
+        banner.classList.add("hidden");
+        banner.innerHTML = "";
+        return;
+      }
+      banner.classList.remove("hidden");
+      banner.innerHTML = `
+        <div>
+          <strong>Synced at ${escapeHtml(formatDateTime(S.lastSync))}</strong>
+          <div class="helper-text">Live inventory is available for recommendation cross-checking.</div>
+        </div>
+        <div class="stack">
+          <button class="ghost-btn" id="bannerSyncBtn" type="button">Sync again</button>
+        </div>
+      `;
+    }
+
+    function renderBuildCard() {
+      const build = BUILDS[S.char] && BUILDS[S.char][S.activity];
+      const mount = document.getElementById("buildMount");
+      if (!build) {
+        mount.innerHTML = `
+          <div class="empty-state">
+            <p>No build is mapped for this character and activity yet.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const recommendations = S.liveInventory ? getRecommendations(S.char, S.liveInventory) : null;
+      const upgrades = S.liveInventory ? getLegendaryUpgrades(S.char, S.liveInventory) : [];
+      mount.innerHTML = `
+        <article class="card">
+          <div class="eyebrow">${escapeHtml(CHARS[S.char].label)} · ${escapeHtml(ACT_LABEL[S.activity])}</div>
+          <h2 class="build-title">${escapeHtml(build.name)}</h2>
+          <div class="pill-row">
+            <span class="pill">${escapeHtml(build.subclass)}</span>
+            <span class="pill exotic">✦ ${escapeHtml(build.exotic)}</span>
+            ${build.warn ? `<span class="pill warn">${escapeHtml(build.warn)}</span>` : ""}
+            ${build.note ? `<span class="pill note">${escapeHtml(build.note)}</span>` : ""}
+          </div>
+          <p class="concept">${escapeHtml(build.concept)}</p>
+
+          <div class="gear-grid">
+            <section class="panel">
+              <h3>Armor</h3>
+              <div class="item-list">
+                ${build.armor.map((item) => renderGearRow(item)).join("")}
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Weapons</h3>
+              <div class="item-list">
+                ${build.weapons.map((item) => renderGearRow(item, true)).join("")}
+              </div>
+            </section>
+          </div>
+
+          <div class="mods-wrap">
+            <div class="chips">
+              ${build.mods.map((mod) => `<span class="chip">${escapeHtml(mod)}</span>`).join("")}
+            </div>
+            <p class="mods-note">${escapeHtml(build.modsNote)}</p>
+          </div>
+
+          <button class="toggle-btn" id="detailsToggleBtn" type="button">
+            ${S.showDetails ? "Hide stats & details" : "Show stats & details"}
+            <span>${S.showDetails ? "Collapse the deeper breakdown" : "Armor stats, MW levels, artifact, and live inventory"}</span>
+          </button>
+
+          <div class="details ${S.showDetails ? "open" : ""}" id="detailsSection">
+            ${renderStatsGrid(build)}
+            <div class="detail-grid">
+              <section class="detail-card">
+                <div class="section-kicker">Armor Details</div>
+                <div class="detail-list">
+                  ${build.armor.map((piece) => renderArmorDetail(piece)).join("")}
+                </div>
+              </section>
+              <section class="detail-card">
+                <div class="section-kicker">Weapon Details</div>
+                <div class="detail-list">
+                  ${build.weapons.map((weapon) => renderWeaponDetail(weapon)).join("")}
+                </div>
+              </section>
+            </div>
+            <section class="detail-card">
+              <div class="section-kicker">Artifact Picks</div>
+              <div class="artifact-list">
+                ${build.artifact.map((entry) => `
+                  <div class="artifact-row">
+                    <div class="artifact-col">Column ${entry.col}</div>
+                    <div>${escapeHtml(entry.text)}</div>
+                  </div>
+                `).join("")}
+              </div>
+              <p class="artifact-tip"><em>${escapeHtml(build.artifactTip)}</em></p>
+            </section>
+            ${S.liveInventory ? renderLiveInventoryPanel(build, recommendations, upgrades) : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderGearRow(item, weapon) {
+      const extra = [];
+      if (weapon && item.type) extra.push(item.type);
+      if (weapon && item.pw) extra.push("Power " + item.pw);
+      return `
+        <div class="item-row">
+          <div class="item-slot">${escapeHtml(item.slot)}</div>
+          <div>
+            <div class="item-name ${item.exotic ? "exotic" : ""}">
+              ${weapon && item.el ? `<span class="element-dot" style="color:${EL_COLORS[item.el] || "var(--muted)"}; background:${EL_COLORS[item.el] || "var(--muted)"}"></span> ` : ""}
+              ${escapeHtml(item.name)}
+            </div>
+            ${extra.length || item.note ? `
+              <div class="item-sub">
+                ${escapeHtml(extra.join(" · "))}
+                ${item.note ? `${extra.length ? " · " : ""}${escapeHtml(item.note)}` : ""}
+              </div>
+            ` : ""}
+          </div>
+          <span class="badge ${locationClass(item.loc)}">${escapeHtml(locationLabel(item.loc))}</span>
+        </div>
+      `;
+    }
+
+    function renderStatsGrid(build) {
+      const statMeta = [
+        { key: "health", label: "Health", note: build.statNotes.health },
+        { key: "cls", label: "Class", note: build.statNotes.cls },
+        { key: "grenade", label: "Grenade", note: build.statNotes.grenade },
+      ];
+      return `
+        <div class="stats-grid">
+          ${statMeta.map((stat) => {
+            const value = build.stats[stat.key];
+            const tone = getStatTone(value);
+            return `
+              <section class="stat-card">
+                <div class="stat-label">${stat.label}</div>
+                <div class="stat-value ${tone.klass}">${value}</div>
+                <div class="stat-bar"><span style="width:${Math.min(value, 100)}%; background:${tone.color};"></span></div>
+                <p class="stat-note">${escapeHtml(stat.note)}</p>
+              </section>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function renderArmorDetail(piece) {
+      return `
+        <div class="detail-entry">
+          <div class="detail-head">
+            <div class="detail-title">
+              <span>${escapeHtml(piece.slot)}</span>
+              <span class="${piece.exotic ? "item-name exotic" : ""}">${escapeHtml(piece.name)}</span>
+            </div>
+            <div class="stack">
+              <span class="mw-badge ${getMwTone(piece.mw)}">MW ${piece.mw}/10</span>
+              <span class="badge ${locationClass(piece.loc)}">${escapeHtml(locationLabel(piece.loc))}</span>
+            </div>
+          </div>
+          <div class="mini-stats">
+            <span class="mini-stat">H ${piece.h}</span>
+            <span class="mini-stat">C ${piece.c}</span>
+            <span class="mini-stat">G ${piece.g}</span>
+          </div>
+          <p class="detail-note">${escapeHtml(piece.note)}</p>
+        </div>
+      `;
+    }
+
+    function renderWeaponDetail(weapon) {
+      return `
+        <div class="detail-entry">
+          <div class="detail-head">
+            <div class="detail-title">
+              <span class="element-dot" style="color:${EL_COLORS[weapon.el] || "var(--muted)"}; background:${EL_COLORS[weapon.el] || "var(--muted)"}"></span>
+              <span>${escapeHtml(weapon.slot)}</span>
+              <span class="${weapon.exotic ? "item-name exotic" : ""}">${escapeHtml(weapon.name)}</span>
+            </div>
+            <div class="stack">
+              ${Number.isFinite(weapon.mw) ? `<span class="mw-badge ${getMwTone(weapon.mw)}">MW ${weapon.mw}/10</span>` : ""}
+              <span class="badge ${locationClass(weapon.loc)}">${escapeHtml(locationLabel(weapon.loc))}</span>
+            </div>
+          </div>
+          <div class="mini-stats">
+            <span class="mini-stat">${escapeHtml(weapon.type)}</span>
+            <span class="mini-stat">Power ${weapon.pw}</span>
+          </div>
+          ${weapon.note ? `<p class="detail-note">${escapeHtml(weapon.note)}</p>` : ""}
+        </div>
+      `;
+    }
+
+    function renderLiveInventoryPanel(build, recommendations, upgrades) {
+      const liveChar = getLiveCharacterRecord(S.char);
+      return `
+        <div class="live-grid">
+          <section class="inventory-card">
+            <div class="section-kicker">Currently Equipped on ${escapeHtml(CHARS[S.char].label)} (live)</div>
+            ${liveChar && liveChar.equipped.length ? `
+              <div class="inventory-list">
+                ${liveChar.equipped.map((item) => renderInventoryItem(item)).join("")}
+              </div>
+            ` : `<p class="subtle-copy">No live equipped data found for this class yet.</p>`}
+          </section>
+          <section class="inventory-card">
+            <div class="section-kicker">★ Exotic Armor Available</div>
+            ${recommendations && recommendations.exoticOptions.length ? renderGroupedInventory(recommendations.exoticOptions, build.exotic) : `<p class="subtle-copy">No alternate exotics found yet.</p>`}
+          </section>
+          <section class="inventory-card" style="grid-column: 1 / -1;">
+            <div class="section-kicker">Legendary Upgrades</div>
+            ${upgrades.length ? renderGroupedInventory(upgrades) : `<p class="subtle-copy">No same-slot legendary alternatives found in live inventory yet.</p>`}
+          </section>
+        </div>
+      `;
+    }
+
+    function renderInventoryItem(item, highlightName) {
+      const highlight = highlightName && item.name === highlightName;
+      return `
+        <div class="inventory-entry">
+          <div class="inventory-head">
+            <div class="detail-title">
+              ${item.el ? `<span class="element-dot" style="color:${EL_COLORS[item.el] || "var(--muted)"}; background:${EL_COLORS[item.el] || "var(--muted)"}"></span>` : ""}
+              <span>${escapeHtml(item.slot)}</span>
+              <span class="${item.isExotic ? "item-name exotic" : ""}">${escapeHtml(item.name)}</span>
+            </div>
+            <span class="badge ${locationClass(item.loc)}">${escapeHtml(locationLabel(item.loc))}</span>
+          </div>
+          <div class="helper-text">${escapeHtml(item.type || "Armor")}</div>
+          ${highlight ? `<div class="helper-text status-good">★ This is the recommended exotic for this build.</div>` : ""}
+        </div>
+      `;
+    }
+
+    function renderGroupedInventory(items, highlightName) {
+      const grouped = groupBy(items, (item) => item.slot);
+      return Object.entries(grouped).map(([slot, slotItems]) => `
+        <div class="slot-group">
+          <h5>${escapeHtml(slot)}</h5>
+          <div class="inventory-list">
+            ${slotItems.map((item) => renderInventoryItem(item, highlightName)).join("")}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function groupBy(items, getKey) {
+      return items.reduce((acc, item) => {
+        const key = getKey(item);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+        return acc;
+      }, {});
+    }
+
+    function renderSettingsPanel() {
+      const container = document.getElementById("settingsContent");
+      const tokenRemaining = isTokenValid() ? formatCountdown(S.tokenExpiry - Date.now()) : "expired";
+      const loginState = isTokenValid();
+      const syncedState = Boolean(S.liveInventory && S.lastSync);
+      const statusClass = S.syncError ? "status-bad" : (S.syncing ? "status-progress" : "helper-text");
+      const statusText = S.syncError || S.syncStatus || (syncedState ? `Synced at ${formatDateTime(S.lastSync)}` : "");
+      const buttonDisabled = !S.clientId || !S.apiKey;
+      container.innerHTML = `
+        <section class="settings-card">
+          <h3>Setup</h3>
+          <p class="helper-text">Create a Bungie app with OAuth Client Type set to <strong>Public</strong> and redirect URL <strong>https://mijinyawah.github.io/Phantom-s-Kit/</strong>.</p>
+          <p><a href="https://www.bungie.net/en/Application" target="_blank" rel="noreferrer">Open Bungie Developer Portal</a></p>
+        </section>
+
+        <section class="settings-card">
+          <h3>Credentials</h3>
+          <div class="field">
+            <label for="apiKeyInput">API Key</label>
+            <input id="apiKeyInput" value="${escapeHtml(S.apiKey)}" placeholder="Paste Bungie API key">
+          </div>
+          <div class="field">
+            <label for="clientIdInput">OAuth client_id</label>
+            <input id="clientIdInput" value="${escapeHtml(S.clientId)}" placeholder="Paste Bungie OAuth client_id">
+          </div>
+          <div class="stack">
+            <button class="primary-btn" id="saveSettingsBtn" type="button">Save settings</button>
+          </div>
+        </section>
+
+        <section class="settings-card">
+          <h3>Session</h3>
+          ${loginState ? `
+            <p class="status-good">✓ Logged in</p>
+            <p class="helper-text">Token expires in ${escapeHtml(tokenRemaining)}.</p>
+            <div class="stack">
+              <button class="primary-btn" id="syncBtn" type="button">${syncedState ? "Sync again" : "Sync gear now"}</button>
+              <button class="ghost-btn" id="reloginBtn" type="button">Re-login</button>
+            </div>
+            <button class="ghost-btn" id="logoutBtn" type="button">Logout</button>
+          ` : `
+            <p class="helper-text">Save your API key and client ID, then start the PKCE login flow.</p>
+            <button class="primary-btn" id="loginBtn" type="button" ${buttonDisabled ? "disabled" : ""}>Login with Bungie</button>
+          `}
+          ${syncedState ? `<button class="danger-btn" id="clearDataBtn" type="button">Clear all data</button>` : ""}
+          ${statusText ? `<p class="${statusClass}">${escapeHtml(statusText)}</p>` : ""}
+        </section>
+      `;
+    }
+
+    function getLiveCharacterRecord(charKey) {
+      if (!S.liveInventory || !S.liveInventory.byChar) return null;
+      return Object.values(S.liveInventory.byChar).find((entry) => entry.className && entry.className.toLowerCase() === charKey) || null;
+    }
+
+    function getRecommendations(char, liveInventory) {
+      const myClassType = CLASS_TYPE_BY_KEY[char];
+      const armorSlots = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const allArmor = [
+        ...Object.values(liveInventory.byChar).flatMap((c) => [...c.equipped, ...c.inventory]),
+        ...liveInventory.vault,
+      ].filter((item) => armorSlots.includes(item.slot) && (item.classType === myClassType || item.classType === 3));
+
+      const myChar = Object.values(liveInventory.byChar).find((c) => c.className.toLowerCase() === char);
+      const equipped = myChar ? myChar.equipped.filter((item) => armorSlots.includes(item.slot)) : [];
+      const exoticOptions = allArmor.filter((item) => item.isExotic && !equipped.some((eq) => eq.name === item.name));
+      const seen = new Set();
+      const uniqueExotics = exoticOptions.filter((item) => {
+        const key = item.slot + "|" + item.name;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return { exoticOptions: uniqueExotics, equipped };
+    }
+
+    function getLegendaryUpgrades(char, liveInventory) {
+      const myClassType = CLASS_TYPE_BY_KEY[char];
+      const armorSlots = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const myChar = Object.values(liveInventory.byChar).find((c) => c.className.toLowerCase() === char);
+      if (!myChar) return [];
+      const equippedSlots = new Set(myChar.equipped.filter((item) => armorSlots.includes(item.slot)).map((item) => item.slot));
+      const allArmor = [
+        ...Object.values(liveInventory.byChar).flatMap((c) => [...c.equipped, ...c.inventory]),
+        ...liveInventory.vault,
+      ].filter((item) => armorSlots.includes(item.slot) && !item.isExotic && item.isLegendary && equippedSlots.has(item.slot) && (item.classType === myClassType || item.classType === 3));
+
+      const deduped = [];
+      const seen = new Set();
+      for (const item of allArmor) {
+        const key = item.slot + "|" + item.name + "|" + item.loc;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(item);
+      }
+      return deduped;
+    }
+
+    function generateVerifier() {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    }
+
+    async function generateChallenge(verifier) {
+      const data = new TextEncoder().encode(verifier);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    }
+
+    function getRedirectUri() {
+      return window.location.origin + window.location.pathname;
+    }
+
+    function generateState() {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function startLogin() {
+      if (!S.clientId) throw new Error("Add your OAuth client_id first.");
+      const verifier = generateVerifier();
+      const challenge = await generateChallenge(verifier);
+      const state = generateState();
+      const redirectUri = getRedirectUri();
+      localStorage.setItem("pkce_verifier", verifier);
+      localStorage.setItem("pkce_state", state);
+      const params = new URLSearchParams({
+        client_id: S.clientId,
+        response_type: "code",
+        redirect_uri: redirectUri,
+        state,
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+      });
+      window.location.href = AUTHORIZE_URL + "?" + params.toString();
+    }
+
+    async function handleOAuthCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const error = params.get("error");
+      const state = params.get("state");
+      if (error) {
+        throw new Error(params.get("error_description") || error);
+      }
+      if (!code) return false;
+
+      const verifier = localStorage.getItem("pkce_verifier");
+      const expectedState = localStorage.getItem("pkce_state");
+      if (!verifier) throw new Error("No PKCE verifier found — restart login.");
+      if (!state || !expectedState || state !== expectedState) {
+        throw new Error("OAuth state mismatch — restart login.");
+      }
+
+      const response = await fetch(TOKEN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          client_id: S.clientId,
+          redirect_uri: getRedirectUri(),
+          code_verifier: verifier,
+        }),
+      });
+
+      const data = await response.json();
+      if (!data.access_token) {
+        throw new Error(data.error_description || data.error || "Token exchange failed.");
+      }
+
+      ls("accessToken", data.access_token);
+      ls("tokenExpiry", Date.now() + (data.expires_in * 1000));
+      localStorage.removeItem("pkce_verifier");
+      localStorage.removeItem("pkce_state");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return true;
+    }
+
+    async function bApi(path) {
+      const headers = { "X-API-Key": S.apiKey };
+      if (S.accessToken) headers.Authorization = "Bearer " + S.accessToken;
+      const response = await fetch("https://www.bungie.net/Platform" + path, { headers });
+      const json = await response.json();
+      if (json.ErrorCode && json.ErrorCode !== 1) {
+        throw new Error(json.Message || ("Bungie error " + json.ErrorCode));
+      }
+      return json;
+    }
+
+    function setSyncStatus(message, isError) {
+      S.syncStatus = isError ? "" : message;
+      S.syncError = isError ? message : "";
+      renderSettingsPanel();
+    }
+
+    function normalizeItem(def, loc) {
+      return {
+        name: def.displayProperties && def.displayProperties.name || "Unknown Item",
+        type: def.itemTypeDisplayName || "",
+        slot: SLOT_NAMES[def.equippingBlock && def.equippingBlock.equipmentSlotTypeHash] || "Other",
+        isExotic: def.inventory && def.inventory.tierType === 6,
+        isLegendary: def.inventory && def.inventory.tierType === 5,
+        classType: Number.isInteger(def.classType) ? def.classType : 3,
+        loc,
+      };
+    }
+
+    function pickMembership(response) {
+      const memberships = response.destinyMemberships || [];
+      if (!memberships.length) {
+        throw new Error("No Destiny memberships were returned for this account.");
+      }
+
+      const primaryId = response.primaryMembershipId;
+      return memberships.find((item) => String(item.membershipId) === String(primaryId))
+        || memberships.find((item) => item.crossSaveOverride && item.crossSaveOverride !== 0)
+        || memberships[0];
+    }
+
+    async function fetchDefinition(hash, cache) {
+      if (cache.has(hash)) return cache.get(hash);
+      const json = await bApi("/Destiny2/Manifest/DestinyInventoryItemDefinition/" + hash + "/");
+      cache.set(hash, json.Response);
+      return json.Response;
+    }
+
+    async function doSync() {
+      if (!S.apiKey) throw new Error("Add your Bungie API key first.");
+      if (!S.clientId) throw new Error("Add your Bungie OAuth client_id first.");
+      if (!isTokenValid()) throw new Error("Session expired — please log in again.");
+      if (S.syncing) return;
+
+      S.syncing = true;
+      setSyncStatus("Looking up account…", false);
+
+      try {
+        const membershipsJson = await bApi("/User/GetMembershipsForCurrentUser/");
+        const membership = pickMembership(membershipsJson.Response);
+
+        setSyncStatus("Fetching profile…", false);
+        const profileJson = await bApi(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${PROFILE_COMPONENTS}`);
+        const response = profileJson.Response || {};
+        const characterDefs = response.characters && response.characters.data || {};
+        const characterInventories = response.characterInventories && response.characterInventories.data || {};
+        const characterEquipment = response.characterEquipment && response.characterEquipment.data || {};
+        const vaultItems = response.profileInventory && response.profileInventory.data && response.profileInventory.data.items || [];
+
+        const hashSet = new Set();
+        const allItemRefs = [];
+
+        for (const item of vaultItems) {
+          hashSet.add(item.itemHash);
+          allItemRefs.push({ hash: item.itemHash, bucket: "vault" });
+        }
+
+        for (const [charId, charDef] of Object.entries(characterDefs)) {
+          const className = CLASS_MAP[charDef.classType] || "Unknown";
+          const classKey = className.toLowerCase();
+          const inventoryItems = characterInventories[charId] && characterInventories[charId].items || [];
+          const equippedItems = characterEquipment[charId] && characterEquipment[charId].items || [];
+          for (const item of [...inventoryItems, ...equippedItems]) {
+            hashSet.add(item.itemHash);
+          }
+          allItemRefs.push({ charId, classKey, inventoryItems, equippedItems });
+        }
+
+        const hashes = Array.from(hashSet);
+        const defs = new Map();
+        let index = 0;
+        for (const hash of hashes) {
+          index += 1;
+          setSyncStatus(`Resolving items… ${index}/${hashes.length}`, false);
+          await fetchDefinition(hash, defs);
+        }
+
+        const liveInventory = {
+          byChar: {},
+          vault: vaultItems.map((item) => normalizeItem(defs.get(item.itemHash), "vault")).filter((item) => item.slot !== "Other"),
+        };
+
+        for (const [charId, charDef] of Object.entries(characterDefs)) {
+          const className = CLASS_MAP[charDef.classType] || "Unknown";
+          const classKey = className.toLowerCase();
+          const inventoryItems = characterInventories[charId] && characterInventories[charId].items || [];
+          const equippedItems = characterEquipment[charId] && characterEquipment[charId].items || [];
+
+          liveInventory.byChar[charId] = {
+            className,
+            equipped: equippedItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
+            inventory: inventoryItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
+          };
+        }
+
+        ls("liveInventory", liveInventory);
+        ls("lastSync", new Date().toISOString());
+        setSyncStatus("Sync complete.", false);
+        renderAll();
+      } catch (error) {
+        setSyncStatus(error.message || "Sync failed.", true);
+        throw error;
+      } finally {
+        S.syncing = false;
+        renderSettingsPanel();
+      }
+    }
+
+    function logout() {
+      removeStored("accessToken");
+      removeStored("tokenExpiry");
+      S.syncStatus = "";
+      S.syncError = "";
+      renderAll();
+    }
+
+    function clearAllData() {
+      ["d2_liveInventory", "d2_lastSync", "d2_accessToken", "d2_tokenExpiry"].forEach((key) => localStorage.removeItem(key));
+      S.liveInventory = null;
+      S.lastSync = "";
+      S.accessToken = "";
+      S.tokenExpiry = 0;
+      S.syncStatus = "";
+      S.syncError = "";
+      renderAll();
+    }
+
+    function openDrawer() {
+      S.drawerOpen = true;
+      document.getElementById("settingsDrawer").classList.add("open");
+      document.getElementById("drawerBackdrop").classList.add("open");
+      document.getElementById("settingsDrawer").setAttribute("aria-hidden", "false");
+      renderSettingsPanel();
+    }
+
+    function closeDrawer() {
+      S.drawerOpen = false;
+      document.getElementById("settingsDrawer").classList.remove("open");
+      document.getElementById("drawerBackdrop").classList.remove("open");
+      document.getElementById("settingsDrawer").setAttribute("aria-hidden", "true");
+    }
+
+    function saveSettingsFromInputs() {
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      const clientIdInput = document.getElementById("clientIdInput");
+      if (!apiKeyInput || !clientIdInput) return;
+      ls("apiKey", apiKeyInput.value.trim());
+      ls("clientId", clientIdInput.value.trim());
+      S.syncStatus = "Settings saved locally.";
+      S.syncError = "";
+      renderSettingsPanel();
+    }
+
+    function attachEvents() {
+      document.getElementById("charTabs").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-char]");
+        if (!button) return;
+        const nextChar = button.getAttribute("data-char");
+        if (nextChar === S.char) return;
+        S.char = nextChar;
+        localStorage.setItem("d2_char", S.char);
+        const activities = CHARS[S.char].activities;
+        if (!activities.includes(S.activity)) {
+          S.activity = activities[0];
+          localStorage.setItem("d2_activity", S.activity);
+        }
+        renderAll();
+      });
+
+      document.getElementById("activityTabs").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-activity]");
+        if (!button) return;
+        S.activity = button.getAttribute("data-activity");
+        localStorage.setItem("d2_activity", S.activity);
+        renderAll();
+      });
+
+      document.getElementById("settingsToggleBtn").addEventListener("click", openDrawer);
+      document.getElementById("closeDrawerBtn").addEventListener("click", closeDrawer);
+      document.getElementById("drawerBackdrop").addEventListener("click", closeDrawer);
+
+      document.body.addEventListener("click", async (event) => {
+        const { id } = event.target;
+        try {
+          if (id === "detailsToggleBtn") {
+            S.showDetails = !S.showDetails;
+            localStorage.setItem("d2_showDetails", String(S.showDetails));
+            renderBuildCard();
+          } else if (id === "saveSettingsBtn") {
+            saveSettingsFromInputs();
+          } else if (id === "loginBtn" || id === "reloginBtn") {
+            saveSettingsFromInputs();
+            await startLogin();
+          } else if (id === "syncBtn" || id === "bannerSyncBtn") {
+            await doSync();
+          } else if (id === "logoutBtn") {
+            logout();
+          } else if (id === "clearDataBtn") {
+            clearAllData();
+          }
+        } catch (error) {
+          setSyncStatus(error.message || "Something went wrong.", true);
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && S.drawerOpen) closeDrawer();
+      });
+    }
+
+    function renderAll() {
+      renderCharTabs();
+      renderPowerChip();
+      renderActivityTabs();
+      renderSyncBanner();
+      renderBuildCard();
+      renderSettingsPanel();
+    }
+
+    async function init() {
+      attachEvents();
+      try {
+        const wasCallback = await handleOAuthCallback();
+        if (wasCallback) {
+          await doSync();
+        }
+      } catch (error) {
+        setSyncStatus(error.message || "OAuth failed.", true);
+      }
+      renderAll();
+      window.setInterval(() => {
+        if (S.drawerOpen && isTokenValid()) renderSettingsPanel();
+      }, 60000);
+    }
+
+    window.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
