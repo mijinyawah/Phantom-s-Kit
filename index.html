@@ -1104,6 +1104,7 @@
       activity: localStorage.getItem("d2_activity") || "casual",
       showDetails: localStorage.getItem("d2_showDetails") === "true",
       liveInventory: readJson("d2_liveInventory"),
+      itemMeta: readJson("d2_itemMeta") || {},
       lastSync: localStorage.getItem("d2_lastSync") || "",
       drawerOpen: false,
       syncStatus: "",
@@ -1683,12 +1684,12 @@
 
     function normalizeItem(def, loc) {
       return {
-        name: def.displayProperties && def.displayProperties.name || "Unknown Item",
-        type: def.itemTypeDisplayName || "",
-        slot: SLOT_NAMES[def.equippingBlock && def.equippingBlock.equipmentSlotTypeHash] || "Other",
-        isExotic: def.inventory && def.inventory.tierType === 6,
-        isLegendary: def.inventory && def.inventory.tierType === 5,
-        classType: Number.isInteger(def.classType) ? def.classType : 3,
+        name: def && def.name || "Unknown Item",
+        type: def && def.type || "",
+        slot: def && def.slot || "Other",
+        isExotic: Boolean(def && def.isExotic),
+        isLegendary: Boolean(def && def.isLegendary),
+        classType: def && Number.isInteger(def.classType) ? def.classType : 3,
         loc,
       };
     }
@@ -1708,8 +1709,33 @@
     async function fetchDefinition(hash, cache) {
       if (cache.has(hash)) return cache.get(hash);
       const json = await bApi("/Destiny2/Manifest/DestinyInventoryItemDefinition/" + hash + "/");
-      cache.set(hash, json.Response);
-      return json.Response;
+      const def = json.Response || {};
+      const normalized = {
+        name: def.displayProperties && def.displayProperties.name || "Unknown Item",
+        type: def.itemTypeDisplayName || "",
+        slot: SLOT_NAMES[def.equippingBlock && def.equippingBlock.equipmentSlotTypeHash] || "Other",
+        isExotic: def.inventory && def.inventory.tierType === 6,
+        isLegendary: def.inventory && def.inventory.tierType === 5,
+        classType: Number.isInteger(def.classType) ? def.classType : 3,
+      };
+      cache.set(hash, normalized);
+      return normalized;
+    }
+
+    async function resolveDefinitions(hashes, defs) {
+      const unknownHashes = hashes.filter((hash) => !defs.has(hash));
+      if (!unknownHashes.length) return;
+
+      const concurrency = 12;
+      let resolved = 0;
+      for (let i = 0; i < unknownHashes.length; i += concurrency) {
+        const batch = unknownHashes.slice(i, i + concurrency);
+        await Promise.all(batch.map(async (hash) => {
+          await fetchDefinition(hash, defs);
+          resolved += 1;
+          setSyncStatus(`Resolving new items… ${resolved}/${unknownHashes.length}`, false);
+        }));
+      }
     }
 
     async function doSync() {
@@ -1753,13 +1779,10 @@
         }
 
         const hashes = Array.from(hashSet);
-        const defs = new Map();
-        let index = 0;
-        for (const hash of hashes) {
-          index += 1;
-          setSyncStatus(`Resolving items… ${index}/${hashes.length}`, false);
-          await fetchDefinition(hash, defs);
-        }
+        const defs = new Map(
+          Object.entries(S.itemMeta || {}).map(([hash, meta]) => [Number(hash), meta])
+        );
+        await resolveDefinitions(hashes, defs);
 
         const liveInventory = {
           byChar: {},
@@ -1780,6 +1803,7 @@
         }
 
         ls("liveInventory", liveInventory);
+        ls("itemMeta", Object.fromEntries(defs.entries()));
         ls("lastSync", new Date().toISOString());
         setSyncStatus("Sync complete.", false);
         renderAll();
@@ -1801,8 +1825,9 @@
     }
 
     function clearAllData() {
-      ["d2_liveInventory", "d2_lastSync", "d2_accessToken", "d2_tokenExpiry"].forEach((key) => localStorage.removeItem(key));
+      ["d2_liveInventory", "d2_itemMeta", "d2_lastSync", "d2_accessToken", "d2_tokenExpiry"].forEach((key) => localStorage.removeItem(key));
       S.liveInventory = null;
+      S.itemMeta = {};
       S.lastSync = "";
       S.accessToken = "";
       S.tokenExpiry = 0;
