@@ -1670,6 +1670,27 @@
 
     function renderInventoryAudit(audit) {
       const slotOrder = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const solvedSetsBlock = audit.solvedSets && audit.solvedSets.length ? `
+        <div class="slot-group">
+          <h5>Top Solved Sets</h5>
+          <div class="inventory-list">
+            ${audit.solvedSets.map((set, index) => `
+              <div class="inventory-entry">
+                <div class="inventory-head">
+                  <div class="detail-title">
+                    <span>Set ${index + 1}</span>
+                    ${set.hasRecommendedExotic ? `<span class="item-name exotic">Includes ${escapeHtml(set.recommendedExoticName)}</span>` : ""}
+                  </div>
+                  <span class="badge ${set.hasRecommendedExotic ? "loc-vault" : "loc-char"}">${set.hasRecommendedExotic ? "Build-fit exotic" : "No build exotic"}</span>
+                </div>
+                <div class="helper-text">${escapeHtml(set.items.map((item) => `${item.slot}: ${item.name}`).join(" · "))}</div>
+                <div class="helper-text">Health ${set.totals.health} · Class ${set.totals.classAbility} · Grenade ${set.totals.grenade} · Total ${set.totals.totalStats} · Avg Power ${Math.round(set.totals.power / Math.max(set.items.length, 1))}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : "";
+
       const slotBlocks = slotOrder.map((slot) => {
         const items = (audit.bySlot[slot] || []).slice(0, 3);
         if (!items.length) return "";
@@ -1714,7 +1735,7 @@
         </div>
       ` : "";
 
-      return `${slotBlocks}${upgradeBlock}`;
+      return `${solvedSetsBlock}${slotBlocks}${upgradeBlock}`;
     }
 
     function renderInventoryItem(item, highlightName) {
@@ -1951,7 +1972,98 @@
           mw: piece.mw,
         }));
 
-      return { bySlot, upgradePriorities };
+      return {
+        bySlot,
+        upgradePriorities,
+        solvedSets: solveArmorSets(char, bySlot, currentBuild),
+      };
+    }
+
+    function getBuildTargetStats(char, currentBuild) {
+      return {
+        health: currentBuild && currentBuild.stats && currentBuild.stats.health || 0,
+        classAbility: currentBuild && currentBuild.stats && currentBuild.stats.cls || 0,
+        grenade: currentBuild && currentBuild.stats && currentBuild.stats.grenade || 0,
+        classKey: getClassAbilityStatKey(char),
+      };
+    }
+
+    function scoreSetAgainstBuild(char, setItems, currentBuild) {
+      const target = getBuildTargetStats(char, currentBuild);
+      const totals = setItems.reduce((acc, item) => {
+        acc.health += item.stats && item.stats.resilience || 0;
+        acc.classAbility += item.classAbility && item.classAbility.value || 0;
+        acc.grenade += item.stats && item.stats.discipline || 0;
+        acc.totalStats += item.totalStats || 0;
+        acc.power += item.power || 0;
+        acc.exoticCount += item.isExotic ? 1 : 0;
+        return acc;
+      }, { health: 0, classAbility: 0, grenade: 0, totalStats: 0, power: 0, exoticCount: 0 });
+
+      const fitScore =
+        Math.min(totals.health, target.health || 100) * 1.1 +
+        Math.min(totals.classAbility, target.classAbility || 100) * 1.05 +
+        Math.min(totals.grenade, target.grenade || 100) * 1.1;
+      const overflowBonus =
+        Math.max(totals.health - 100, 0) * 0.15 +
+        Math.max(totals.classAbility - 100, 0) * 0.15 +
+        Math.max(totals.grenade - 100, 0) * 0.15;
+      const totalStatBonus = totals.totalStats * 0.45;
+      const powerBonus = (totals.power / Math.max(setItems.length, 1)) * 0.3;
+      const exoticBonus = setItems.some((item) => item.name === currentBuild.exotic) ? 30 : 0;
+
+      return {
+        score: fitScore + overflowBonus + totalStatBonus + powerBonus + exoticBonus,
+        totals,
+      };
+    }
+
+    function solveArmorSets(char, bySlot, currentBuild) {
+      const slotOrder = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const candidates = Object.fromEntries(slotOrder.map((slot) => [slot, (bySlot[slot] || []).slice(0, slot === "Class" ? 4 : 6)]));
+      if (slotOrder.some((slot) => !candidates[slot] || !candidates[slot].length)) return [];
+
+      const solved = [];
+      for (const helmet of candidates.Helmet) {
+        for (const arms of candidates.Arms) {
+          for (const chest of candidates.Chest) {
+            const exoticCore = [helmet, arms, chest].filter((item) => item.isExotic).length;
+            if (exoticCore > 1) continue;
+            for (const legs of candidates.Legs) {
+              const exoticFour = exoticCore + (legs.isExotic ? 1 : 0);
+              if (exoticFour > 1) continue;
+              for (const classItem of candidates.Class) {
+                const setItems = [helmet, arms, chest, legs, classItem];
+                const exoticCount = setItems.filter((item) => item.isExotic).length;
+                if (exoticCount > 1) continue;
+
+                const { score, totals } = scoreSetAgainstBuild(char, setItems, currentBuild);
+                const recommendedExoticItem = setItems.find((item) => item.name === currentBuild.exotic) || null;
+                solved.push({
+                  score,
+                  totals,
+                  items: setItems,
+                  hasRecommendedExotic: Boolean(recommendedExoticItem),
+                  recommendedExoticName: recommendedExoticItem ? recommendedExoticItem.name : "",
+                });
+              }
+            }
+          }
+        }
+      }
+
+      solved.sort((a, b) => b.score - a.score);
+
+      const unique = [];
+      const seen = new Set();
+      for (const set of solved) {
+        const key = set.items.map((item) => item.instanceId || `${item.slot}|${item.name}|${item.loc}`).join("::");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(set);
+        if (unique.length === 3) break;
+      }
+      return unique;
     }
 
     function generateVerifier() {
