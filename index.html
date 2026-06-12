@@ -1411,6 +1411,7 @@
 
       const recommendations = S.liveInventory ? getRecommendations(S.char, S.liveInventory) : null;
       const upgrades = S.liveInventory ? getLegendaryUpgrades(S.char, S.liveInventory) : [];
+      const audit = S.liveInventory ? getInventoryAudit(S.char, S.liveInventory, build) : null;
       mount.innerHTML = `
         <article class="card">
           <div class="eyebrow">${escapeHtml(CHARS[S.char].label)} · ${escapeHtml(ACT_LABEL[S.activity])}</div>
@@ -1480,7 +1481,7 @@
               </div>
               <p class="artifact-tip"><em>${escapeHtml(build.artifactTip)}</em></p>
             </section>
-            ${S.liveInventory ? renderLiveInventoryPanel(build, recommendations, upgrades) : ""}
+            ${S.liveInventory ? renderLiveInventoryPanel(build, recommendations, upgrades, audit) : ""}
           </div>
         </article>
       `;
@@ -1596,7 +1597,7 @@
       `;
     }
 
-    function renderLiveInventoryPanel(build, recommendations, upgrades) {
+    function renderLiveInventoryPanel(build, recommendations, upgrades, audit) {
       const liveChar = getLiveCharacterRecord(S.char);
       return `
         <div class="live-grid">
@@ -1616,8 +1617,61 @@
             <div class="section-kicker">Legendary Upgrades</div>
             ${upgrades.length ? renderGroupedInventory(upgrades) : `<p class="subtle-copy">No same-slot legendary alternatives found in live inventory yet.</p>`}
           </section>
+          <section class="inventory-card" style="grid-column: 1 / -1;">
+            <div class="section-kicker">Inventory Audit Preview</div>
+            <p class="subtle-copy">First-pass audit: ranks owned armor by how strongly it matches this app's curated build library plus whether it is already on-char, in vault, or on another character. Full stat-roll optimization is still a later phase.</p>
+            ${audit ? renderInventoryAudit(audit) : `<p class="subtle-copy">No audit data yet.</p>`}
+          </section>
         </div>
       `;
+    }
+
+    function renderInventoryAudit(audit) {
+      const slotOrder = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const slotBlocks = slotOrder.map((slot) => {
+        const items = (audit.bySlot[slot] || []).slice(0, 3);
+        if (!items.length) return "";
+        return `
+          <div class="slot-group">
+            <h5>${escapeHtml(slot)}</h5>
+            <div class="inventory-list">
+              ${items.map((item) => `
+                <div class="inventory-entry">
+                  <div class="inventory-head">
+                    <div class="detail-title">
+                      <span class="${item.isExotic ? "item-name exotic" : ""}">${escapeHtml(item.name)}</span>
+                    </div>
+                    <span class="badge ${locationClass(item.loc)}">${escapeHtml(locationLabel(item.loc))}</span>
+                  </div>
+                  <div class="helper-text">${escapeHtml(item.reasons.join(" · "))}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).filter(Boolean).join("");
+
+      const upgradeBlock = audit.upgradePriorities.length ? `
+        <div class="slot-group">
+          <h5>Upgrade Priority</h5>
+          <div class="inventory-list">
+            ${audit.upgradePriorities.map((item) => `
+              <div class="inventory-entry">
+                <div class="inventory-head">
+                  <div class="detail-title">
+                    <span>${escapeHtml(item.slot)}</span>
+                    <span>${escapeHtml(item.name)}</span>
+                  </div>
+                  <span class="badge ${locationClass(item.loc)}">${escapeHtml(locationLabel(item.loc))}</span>
+                </div>
+                <div class="helper-text">MW ${item.mw}/10 · ${escapeHtml(item.note)}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : "";
+
+      return `${slotBlocks}${upgradeBlock}`;
     }
 
     function renderInventoryItem(item, highlightName) {
@@ -1758,6 +1812,95 @@
         deduped.push(item);
       }
       return deduped;
+    }
+
+    function getAllArmorForChar(char, liveInventory) {
+      const myClassType = CLASS_TYPE_BY_KEY[char];
+      const armorSlots = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      return [
+        ...Object.values(liveInventory.byChar).flatMap((c) => [...c.equipped, ...c.inventory]),
+        ...liveInventory.vault,
+      ].filter((item) => armorSlots.includes(item.slot) && (item.classType === myClassType || item.classType === 3));
+    }
+
+    function getBuildArmorUsage(char) {
+      const usage = new Map();
+      const charBuilds = BUILDS[char] || {};
+      for (const [activity, build] of Object.entries(charBuilds)) {
+        for (const piece of build.armor || []) {
+          const slot = normalizeArmorSlot(piece.slot);
+          const key = slot + "|" + piece.name;
+          const found = usage.get(key) || { count: 0, activities: [], piece };
+          found.count += 1;
+          found.activities.push(activity);
+          usage.set(key, found);
+        }
+      }
+      return usage;
+    }
+
+    function getInventoryAudit(char, liveInventory, currentBuild) {
+      const usage = getBuildArmorUsage(char);
+      const allArmor = getAllArmorForChar(char, liveInventory);
+      const deduped = [];
+      const seen = new Set();
+
+      for (const item of allArmor) {
+        const slot = normalizeArmorSlot(item.slot);
+        const dedupeKey = slot + "|" + item.name;
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
+
+        const buildHit = usage.get(dedupeKey);
+        const score =
+          (buildHit ? buildHit.count * 40 : 0) +
+          (item.name === currentBuild.exotic ? 25 : 0) +
+          (item.loc === "char" ? 10 : item.loc === "vault" ? 6 : 4) +
+          (item.isExotic ? 8 : item.isLegendary ? 4 : 0);
+
+        const reasons = [];
+        if (buildHit) {
+          reasons.push(buildHit.count > 1
+            ? `Appears in ${buildHit.count} curated ${buildHit.count === 1 ? "build" : "builds"}`
+            : `Appears in the ${ACT_LABEL[buildHit.activities[0]]} build`);
+        }
+        if (item.name === currentBuild.exotic) reasons.push("Matches this build's exotic");
+        if (item.loc === "char") reasons.push("Already on this character");
+        else if (item.loc === "vault") reasons.push("Ready to pull from vault");
+        else reasons.push(`Can be transferred from ${locationLabel(item.loc)}`);
+        if (item.isExotic) reasons.push("Exotic option");
+        else if (item.isLegendary) reasons.push("Legendary filler / comparison piece");
+
+        deduped.push({
+          ...item,
+          slot,
+          score,
+          reasons,
+          buildCount: buildHit ? buildHit.count : 0,
+        });
+      }
+
+      const bySlot = {};
+      for (const item of deduped) {
+        if (!bySlot[item.slot]) bySlot[item.slot] = [];
+        bySlot[item.slot].push(item);
+      }
+
+      for (const slot of Object.keys(bySlot)) {
+        bySlot[slot].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+      }
+
+      const upgradePriorities = (currentBuild.armor || [])
+        .filter((piece) => piece.mw < 10 || piece.loc === "vault" || /infus/i.test(piece.note || ""))
+        .map((piece) => ({
+          slot: normalizeArmorSlot(piece.slot),
+          name: piece.name,
+          note: piece.note,
+          loc: piece.loc,
+          mw: piece.mw,
+        }));
+
+      return { bySlot, upgradePriorities };
     }
 
     function generateVerifier() {
