@@ -72,6 +72,12 @@
       background: none;
     }
 
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      transform: none !important;
+    }
+
     .shell {
       width: min(1120px, calc(100% - 32px));
       margin: 0 auto;
@@ -217,6 +223,7 @@
     }
 
     .sync-banner,
+    .global-status,
     .activity-bar,
     .card,
     .empty-state {
@@ -229,6 +236,38 @@
     .activity-bar {
       padding: 12px;
       margin-bottom: 16px;
+    }
+
+    .global-status {
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .global-status-copy {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(96, 165, 250, 0.2);
+      border-top-color: var(--blue);
+      animation: spin 0.9s linear infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .sync-banner {
@@ -864,6 +903,8 @@
       <div class="activity-tabs" id="activityTabs"></div>
     </section>
 
+    <section class="global-status hidden" id="globalStatus"></section>
+
     <section class="sync-banner hidden" id="syncBanner"></section>
 
     <section id="buildMount"></section>
@@ -1234,9 +1275,32 @@
           <div class="helper-text">Live inventory is available for recommendation cross-checking.</div>
         </div>
         <div class="stack">
-          <button class="ghost-btn" id="bannerQuickSyncBtn" type="button">Quick refresh equipped</button>
-          <button class="ghost-btn" id="bannerSyncBtn" type="button">Sync again</button>
+          <button class="ghost-btn" id="bannerQuickSyncBtn" type="button" ${S.syncing ? "disabled" : ""}>${S.syncing ? "Refreshing…" : "Quick refresh equipped"}</button>
+          <button class="ghost-btn" id="bannerSyncBtn" type="button" ${S.syncing ? "disabled" : ""}>${S.syncing ? "Syncing…" : "Sync again"}</button>
         </div>
+      `;
+    }
+
+    function renderGlobalStatus() {
+      const panel = document.getElementById("globalStatus");
+      if (!S.syncing && !S.syncError) {
+        panel.classList.add("hidden");
+        panel.innerHTML = "";
+        return;
+      }
+
+      const text = S.syncError || S.syncStatus || "Syncing…";
+      const toneClass = S.syncError ? "status-bad" : "status-progress";
+      panel.classList.remove("hidden");
+      panel.innerHTML = `
+        <div class="global-status-copy">
+          ${S.syncing ? `<span class="spinner" aria-hidden="true"></span>` : ""}
+          <div>
+            <div class="${toneClass}">${escapeHtml(S.syncing ? "Sync in progress" : "Sync error")}</div>
+            <div class="helper-text">${escapeHtml(text)}</div>
+          </div>
+        </div>
+        ${S.syncError ? `<button class="ghost-btn" id="globalDismissErrorBtn" type="button">Dismiss</button>` : ""}
       `;
     }
 
@@ -1521,11 +1585,11 @@
             <p class="status-good">✓ Logged in</p>
             <p class="helper-text">Token expires in ${escapeHtml(tokenRemaining)}.</p>
             <div class="stack">
-              <button class="primary-btn" id="syncBtn" type="button">${syncedState ? "Sync again" : "Sync gear now"}</button>
-              ${syncedState ? `<button class="ghost-btn" id="quickSyncBtn" type="button">Quick refresh equipped</button>` : ""}
-              <button class="ghost-btn" id="reloginBtn" type="button">Re-login</button>
+              <button class="primary-btn" id="syncBtn" type="button" ${S.syncing ? "disabled" : ""}>${S.syncing ? "Syncing…" : (syncedState ? "Sync again" : "Sync gear now")}</button>
+              ${syncedState ? `<button class="ghost-btn" id="quickSyncBtn" type="button" ${S.syncing ? "disabled" : ""}>${S.syncing ? "Refreshing…" : "Quick refresh equipped"}</button>` : ""}
+              <button class="ghost-btn" id="reloginBtn" type="button" ${S.syncing ? "disabled" : ""}>Re-login</button>
             </div>
-            <button class="ghost-btn" id="logoutBtn" type="button">Logout</button>
+            <button class="ghost-btn" id="logoutBtn" type="button" ${S.syncing ? "disabled" : ""}>Logout</button>
           ` : `
             <p class="helper-text">Save your API key and client ID, then start the PKCE login flow.</p>
             <button class="primary-btn" id="loginBtn" type="button" ${buttonDisabled ? "disabled" : ""}>Login with Bungie</button>
@@ -1682,6 +1746,8 @@
     function setSyncStatus(message, isError) {
       S.syncStatus = isError ? "" : message;
       S.syncError = isError ? message : "";
+      renderGlobalStatus();
+      renderSyncBanner();
       renderSettingsPanel();
     }
 
@@ -1939,6 +2005,9 @@
             logout();
           } else if (id === "clearDataBtn") {
             clearAllData();
+          } else if (id === "globalDismissErrorBtn") {
+            S.syncError = "";
+            renderAll();
           }
         } catch (error) {
           setSyncStatus(error.message || "Something went wrong.", true);
@@ -1954,6 +2023,7 @@
       renderCharTabs();
       renderPowerChip();
       renderActivityTabs();
+      renderGlobalStatus();
       renderSyncBanner();
       renderBuildCard();
       renderSettingsPanel();
