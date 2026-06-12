@@ -971,8 +971,8 @@
   <script>
     const TOKEN_URL = "https://www.bungie.net/Platform/App/OAuth/token/";
     const AUTHORIZE_URL = "https://www.bungie.net/en/OAuth/Authorize";
-    const PROFILE_COMPONENTS = "100,102,200,201,202";
-    const QUICK_PROFILE_COMPONENTS = "100,200,202";
+    const PROFILE_COMPONENTS = "100,102,200,201,202,300,304";
+    const QUICK_PROFILE_COMPONENTS = "100,200,202,300,304";
     const SLOT_NAMES = {
       1498876634: "Kinetic",
       2465295065: "Energy",
@@ -999,6 +999,14 @@
       titan: "On Titan",
       warlock: "On Warlock",
       hunter: "On Hunter",
+    };
+    const ARMOR_STAT_HASHES = {
+      mobility: 2996146975,
+      resilience: 392767087,
+      recovery: 1943323491,
+      discipline: 1735777505,
+      intellect: 144602215,
+      strength: 4244567218,
     };
 
     const BUILDS = {
@@ -1320,6 +1328,40 @@
       return slot;
     }
 
+    function getClassAbilityStatKey(char) {
+      if (char === "warlock") return "recovery";
+      if (char === "titan") return "resilience";
+      return "mobility";
+    }
+
+    function getItemInstanceStats(itemRef, instanceData, statsData, charKey) {
+      const values = statsData && statsData.stats ? statsData.stats : {};
+      const classKey = getClassAbilityStatKey(charKey);
+      const statValue = (hash) => values[hash] && typeof values[hash].value === "number" ? values[hash].value : 0;
+      const mobility = statValue(ARMOR_STAT_HASHES.mobility);
+      const resilience = statValue(ARMOR_STAT_HASHES.resilience);
+      const recovery = statValue(ARMOR_STAT_HASHES.recovery);
+      const discipline = statValue(ARMOR_STAT_HASHES.discipline);
+      const intellect = statValue(ARMOR_STAT_HASHES.intellect);
+      const strength = statValue(ARMOR_STAT_HASHES.strength);
+      return {
+        instanceId: itemRef && itemRef.itemInstanceId || "",
+        power: instanceData && instanceData.primaryStat && typeof instanceData.primaryStat.value === "number"
+          ? instanceData.primaryStat.value
+          : null,
+        stats: {
+          mobility,
+          resilience,
+          recovery,
+          discipline,
+          intellect,
+          strength,
+        },
+        classAbility: { key: classKey, value: { mobility, resilience, recovery }[classKey] || 0 },
+        totalStats: mobility + resilience + recovery + discipline + intellect + strength,
+      };
+    }
+
     function locationClass(loc) {
       return "loc-" + (loc || "vault");
     }
@@ -1619,7 +1661,7 @@
           </section>
           <section class="inventory-card" style="grid-column: 1 / -1;">
             <div class="section-kicker">Inventory Audit Preview</div>
-            <p class="subtle-copy">First-pass audit: ranks owned armor by how strongly it matches this app's curated build library plus whether it is already on-char, in vault, or on another character. Full stat-roll optimization is still a later phase.</p>
+            <p class="subtle-copy">First-pass audit: ranks owned armor copies by curated build fit, live instance stats, power, and whether the piece is already on-char, in vault, or on another character. Full combinational loadout solving is still a later phase.</p>
             ${audit ? renderInventoryAudit(audit) : `<p class="subtle-copy">No audit data yet.</p>`}
           </section>
         </div>
@@ -1644,6 +1686,7 @@
                     <span class="badge ${locationClass(item.loc)}">${escapeHtml(locationLabel(item.loc))}</span>
                   </div>
                   <div class="helper-text">${escapeHtml(item.reasons.join(" · "))}</div>
+                  ${(item.totalStats || item.power) ? `<div class="helper-text">Score ${Math.round(item.score)}${item.totalStats ? ` · Total ${item.totalStats}` : ""}${item.classAbility && item.classAbility.value ? ` · Class ${item.classAbility.value}` : ""}${item.stats && item.stats.discipline ? ` · Grenade ${item.stats.discipline}` : ""}${item.power ? ` · Power ${item.power}` : ""}</div>` : ""}
                 </div>
               `).join("")}
             </div>
@@ -1842,21 +1885,25 @@
     function getInventoryAudit(char, liveInventory, currentBuild) {
       const usage = getBuildArmorUsage(char);
       const allArmor = getAllArmorForChar(char, liveInventory);
-      const deduped = [];
-      const seen = new Set();
+      const ranked = [];
 
       for (const item of allArmor) {
         const slot = normalizeArmorSlot(item.slot);
-        const dedupeKey = slot + "|" + item.name;
-        if (seen.has(dedupeKey)) continue;
-        seen.add(dedupeKey);
-
-        const buildHit = usage.get(dedupeKey);
+        const buildKey = slot + "|" + item.name;
+        const buildHit = usage.get(buildKey);
+        const statScore = Math.round(
+          (item.totalStats || 0) / 2 +
+          (item.classAbility && item.classAbility.value || 0) * 0.8 +
+          (item.stats && item.stats.discipline || 0) * 0.8
+        );
+        const powerScore = item.power ? item.power / 12 : 0;
         const score =
           (buildHit ? buildHit.count * 40 : 0) +
           (item.name === currentBuild.exotic ? 25 : 0) +
           (item.loc === "char" ? 10 : item.loc === "vault" ? 6 : 4) +
-          (item.isExotic ? 8 : item.isLegendary ? 4 : 0);
+          (item.isExotic ? 8 : item.isLegendary ? 4 : 0) +
+          statScore +
+          powerScore;
 
         const reasons = [];
         if (buildHit) {
@@ -1868,10 +1915,14 @@
         if (item.loc === "char") reasons.push("Already on this character");
         else if (item.loc === "vault") reasons.push("Ready to pull from vault");
         else reasons.push(`Can be transferred from ${locationLabel(item.loc)}`);
+        if (item.totalStats) reasons.push(`Total stats ${item.totalStats}`);
+        if (item.classAbility && item.classAbility.value) reasons.push(`Class stat ${item.classAbility.value}`);
+        if (item.stats && item.stats.discipline) reasons.push(`Grenade stat ${item.stats.discipline}`);
+        if (item.power) reasons.push(`Power ${item.power}`);
         if (item.isExotic) reasons.push("Exotic option");
         else if (item.isLegendary) reasons.push("Legendary filler / comparison piece");
 
-        deduped.push({
+        ranked.push({
           ...item,
           slot,
           score,
@@ -1881,7 +1932,7 @@
       }
 
       const bySlot = {};
-      for (const item of deduped) {
+      for (const item of ranked) {
         if (!bySlot[item.slot]) bySlot[item.slot] = [];
         bySlot[item.slot].push(item);
       }
@@ -2005,7 +2056,8 @@
       renderSettingsPanel();
     }
 
-    function normalizeItem(def, loc) {
+    function normalizeItem(def, loc, itemRef, instanceData, statsData, charKey) {
+      const live = getItemInstanceStats(itemRef, instanceData, statsData, charKey);
       return {
         name: def && def.name || "Unknown Item",
         type: def && def.type || "",
@@ -2013,6 +2065,12 @@
         isExotic: Boolean(def && def.isExotic),
         isLegendary: Boolean(def && def.isLegendary),
         classType: def && Number.isInteger(def.classType) ? def.classType : 3,
+        itemHash: itemRef && itemRef.itemHash || 0,
+        instanceId: live.instanceId,
+        power: live.power,
+        stats: live.stats,
+        classAbility: live.classAbility,
+        totalStats: live.totalStats,
         loc,
       };
     }
@@ -2096,6 +2154,8 @@
         const response = profileJson.Response || {};
         const characterDefs = response.characters && response.characters.data || {};
         const characterEquipment = response.characterEquipment && response.characterEquipment.data || {};
+        const itemInstances = response.itemComponents && response.itemComponents.instances && response.itemComponents.instances.data || {};
+        const itemStats = response.itemComponents && response.itemComponents.stats && response.itemComponents.stats.data || {};
         const characterInventories = mode === "full"
           ? (response.characterInventories && response.characterInventories.data || {})
           : {};
@@ -2131,7 +2191,14 @@
           ? cloneLiveInventoryForMerge()
           : {
               byChar: {},
-              vault: vaultItems.map((item) => normalizeItem(defs.get(item.itemHash), "vault")).filter((item) => item.slot !== "Other"),
+              vault: vaultItems.map((item) => normalizeItem(
+                defs.get(item.itemHash),
+                "vault",
+                item,
+                item.itemInstanceId ? itemInstances[item.itemInstanceId] : null,
+                item.itemInstanceId ? itemStats[item.itemInstanceId] : null,
+                S.char
+              )).filter((item) => item.slot !== "Other"),
             };
 
         for (const [charId, charDef] of Object.entries(characterDefs)) {
@@ -2144,10 +2211,24 @@
 
           liveInventory.byChar[charId] = {
             className,
-            equipped: equippedItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
+            equipped: equippedItems.map((item) => normalizeItem(
+              defs.get(item.itemHash),
+              classKey,
+              item,
+              item.itemInstanceId ? itemInstances[item.itemInstanceId] : null,
+              item.itemInstanceId ? itemStats[item.itemInstanceId] : null,
+              classKey
+            )).filter((item) => item.slot !== "Other"),
             inventory: mode === "quick"
               ? ((liveInventory.byChar[charId] && liveInventory.byChar[charId].inventory) || [])
-              : inventoryItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
+              : inventoryItems.map((item) => normalizeItem(
+                  defs.get(item.itemHash),
+                  classKey,
+                  item,
+                  item.itemInstanceId ? itemInstances[item.itemInstanceId] : null,
+                  item.itemInstanceId ? itemStats[item.itemInstanceId] : null,
+                  classKey
+                )).filter((item) => item.slot !== "Other"),
           };
         }
 
