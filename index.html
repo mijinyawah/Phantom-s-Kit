@@ -429,6 +429,28 @@
       margin-top: 2px;
     }
 
+    .item-mods-toggle {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .item-mods-toggle summary {
+      cursor: pointer;
+      list-style: none;
+      color: #cfd5e8;
+    }
+
+    .item-mods-toggle summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .item-mods-text {
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
     .badge {
       font-size: 12px;
       padding: 6px 10px;
@@ -1385,22 +1407,20 @@
             <section class="panel">
               <h3>Armor</h3>
               <div class="item-list">
-                ${build.armor.map((item) => renderGearRow(item)).join("")}
+                ${build.armor.map((item) => renderGearRow(item, false, build)).join("")}
               </div>
             </section>
             <section class="panel">
               <h3>Weapons</h3>
               <div class="item-list">
-                ${build.weapons.map((item) => renderGearRow(item, true)).join("")}
+                ${build.weapons.map((item) => renderGearRow(item, true, build)).join("")}
               </div>
             </section>
           </div>
 
           <div class="mods-wrap">
-            <div class="section-kicker">Suggested Gear Mods</div>
-            <div class="chips">
-              ${build.mods.map((mod) => `<span class="chip">${escapeHtml(mod)}</span>`).join("")}
-            </div>
+            <div class="section-kicker">Mod Notes</div>
+            <p class="mods-note">Open “Show mods” under each armor piece to see where the recommendations go.</p>
             <p class="mods-note">${escapeHtml(build.modsNote)}</p>
           </div>
 
@@ -1443,8 +1463,9 @@
       `;
     }
 
-    function renderGearRow(item, weapon) {
+    function renderGearRow(item, weapon, build) {
       const extra = [];
+      const slotMods = !weapon ? (getModsBySlot(build)[normalizeArmorSlot(item.slot)] || []) : [];
       if (weapon && item.type) extra.push(item.type);
       if (weapon && item.pw) extra.push("Power " + item.pw);
       return `
@@ -1460,6 +1481,12 @@
                 ${escapeHtml(extra.join(" · "))}
                 ${item.note ? `${extra.length ? " · " : ""}${escapeHtml(item.note)}` : ""}
               </div>
+            ` : ""}
+            ${slotMods.length ? `
+              <details class="item-mods-toggle">
+                <summary>${escapeHtml((slotMods.length ? "Show mods for this piece" : ""))}</summary>
+                <div class="item-mods-text">${escapeHtml(item.slot)} mods: ${escapeHtml(slotMods.join(" · "))}</div>
+              </details>
             ` : ""}
           </div>
           <span class="badge ${locationClass(item.loc)}">${escapeHtml(locationLabel(item.loc))}</span>
