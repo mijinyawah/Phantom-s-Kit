@@ -873,6 +873,7 @@
     const TOKEN_URL = "https://www.bungie.net/Platform/App/OAuth/token/";
     const AUTHORIZE_URL = "https://www.bungie.net/en/OAuth/Authorize";
     const PROFILE_COMPONENTS = "100,102,200,201,202";
+    const QUICK_PROFILE_COMPONENTS = "100,200,202";
     const SLOT_NAMES = {
       1498876634: "Kinetic",
       2465295065: "Energy",
@@ -1233,6 +1234,7 @@
           <div class="helper-text">Live inventory is available for recommendation cross-checking.</div>
         </div>
         <div class="stack">
+          <button class="ghost-btn" id="bannerQuickSyncBtn" type="button">Quick refresh equipped</button>
           <button class="ghost-btn" id="bannerSyncBtn" type="button">Sync again</button>
         </div>
       `;
@@ -1520,6 +1522,7 @@
             <p class="helper-text">Token expires in ${escapeHtml(tokenRemaining)}.</p>
             <div class="stack">
               <button class="primary-btn" id="syncBtn" type="button">${syncedState ? "Sync again" : "Sync gear now"}</button>
+              ${syncedState ? `<button class="ghost-btn" id="quickSyncBtn" type="button">Quick refresh equipped</button>` : ""}
               <button class="ghost-btn" id="reloginBtn" type="button">Re-login</button>
             </div>
             <button class="ghost-btn" id="logoutBtn" type="button">Logout</button>
@@ -1738,44 +1741,64 @@
       }
     }
 
-    async function doSync() {
+    function cloneLiveInventoryForMerge() {
+      if (!S.liveInventory) {
+        return { byChar: {}, vault: [] };
+      }
+      return {
+        byChar: Object.fromEntries(
+          Object.entries(S.liveInventory.byChar || {}).map(([charId, entry]) => [charId, {
+            className: entry.className,
+            equipped: [...(entry.equipped || [])],
+            inventory: [...(entry.inventory || [])],
+          }])
+        ),
+        vault: [...(S.liveInventory.vault || [])],
+      };
+    }
+
+    async function doSync(mode = "full") {
       if (!S.apiKey) throw new Error("Add your Bungie API key first.");
       if (!S.clientId) throw new Error("Add your Bungie OAuth client_id first.");
       if (!isTokenValid()) throw new Error("Session expired — please log in again.");
       if (S.syncing) return;
 
       S.syncing = true;
-      setSyncStatus("Looking up account…", false);
+      setSyncStatus(mode === "quick" ? "Looking up account for quick refresh…" : "Looking up account…", false);
 
       try {
         const membershipsJson = await bApi("/User/GetMembershipsForCurrentUser/");
         const membership = pickMembership(membershipsJson.Response);
 
-        setSyncStatus("Fetching profile…", false);
-        const profileJson = await bApi(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${PROFILE_COMPONENTS}`);
+        setSyncStatus(mode === "quick" ? "Fetching equipped gear…" : "Fetching profile…", false);
+        const componentList = mode === "quick" ? QUICK_PROFILE_COMPONENTS : PROFILE_COMPONENTS;
+        const profileJson = await bApi(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${componentList}`);
         const response = profileJson.Response || {};
         const characterDefs = response.characters && response.characters.data || {};
-        const characterInventories = response.characterInventories && response.characterInventories.data || {};
         const characterEquipment = response.characterEquipment && response.characterEquipment.data || {};
-        const vaultItems = response.profileInventory && response.profileInventory.data && response.profileInventory.data.items || [];
+        const characterInventories = mode === "full"
+          ? (response.characterInventories && response.characterInventories.data || {})
+          : {};
+        const vaultItems = mode === "full"
+          ? (response.profileInventory && response.profileInventory.data && response.profileInventory.data.items || [])
+          : [];
 
         const hashSet = new Set();
-        const allItemRefs = [];
 
         for (const item of vaultItems) {
           hashSet.add(item.itemHash);
-          allItemRefs.push({ hash: item.itemHash, bucket: "vault" });
         }
 
         for (const [charId, charDef] of Object.entries(characterDefs)) {
           const className = CLASS_MAP[charDef.classType] || "Unknown";
           const classKey = className.toLowerCase();
-          const inventoryItems = characterInventories[charId] && characterInventories[charId].items || [];
+          const inventoryItems = mode === "full"
+            ? (characterInventories[charId] && characterInventories[charId].items || [])
+            : [];
           const equippedItems = characterEquipment[charId] && characterEquipment[charId].items || [];
           for (const item of [...inventoryItems, ...equippedItems]) {
             hashSet.add(item.itemHash);
           }
-          allItemRefs.push({ charId, classKey, inventoryItems, equippedItems });
         }
 
         const hashes = Array.from(hashSet);
@@ -1784,28 +1807,34 @@
         );
         await resolveDefinitions(hashes, defs);
 
-        const liveInventory = {
-          byChar: {},
-          vault: vaultItems.map((item) => normalizeItem(defs.get(item.itemHash), "vault")).filter((item) => item.slot !== "Other"),
-        };
+        const liveInventory = mode === "quick"
+          ? cloneLiveInventoryForMerge()
+          : {
+              byChar: {},
+              vault: vaultItems.map((item) => normalizeItem(defs.get(item.itemHash), "vault")).filter((item) => item.slot !== "Other"),
+            };
 
         for (const [charId, charDef] of Object.entries(characterDefs)) {
           const className = CLASS_MAP[charDef.classType] || "Unknown";
           const classKey = className.toLowerCase();
-          const inventoryItems = characterInventories[charId] && characterInventories[charId].items || [];
+          const inventoryItems = mode === "full"
+            ? (characterInventories[charId] && characterInventories[charId].items || [])
+            : [];
           const equippedItems = characterEquipment[charId] && characterEquipment[charId].items || [];
 
           liveInventory.byChar[charId] = {
             className,
             equipped: equippedItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
-            inventory: inventoryItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
+            inventory: mode === "quick"
+              ? ((liveInventory.byChar[charId] && liveInventory.byChar[charId].inventory) || [])
+              : inventoryItems.map((item) => normalizeItem(defs.get(item.itemHash), classKey)).filter((item) => item.slot !== "Other"),
           };
         }
 
         ls("liveInventory", liveInventory);
         ls("itemMeta", Object.fromEntries(defs.entries()));
         ls("lastSync", new Date().toISOString());
-        setSyncStatus("Sync complete.", false);
+        setSyncStatus(mode === "quick" ? "Quick refresh complete." : "Sync complete.", false);
         renderAll();
       } catch (error) {
         setSyncStatus(error.message || "Sync failed.", true);
@@ -1903,7 +1932,9 @@
             saveSettingsFromInputs();
             await startLogin();
           } else if (id === "syncBtn" || id === "bannerSyncBtn") {
-            await doSync();
+            await doSync("full");
+          } else if (id === "quickSyncBtn" || id === "bannerQuickSyncBtn") {
+            await doSync("quick");
           } else if (id === "logoutBtn") {
             logout();
           } else if (id === "clearDataBtn") {
