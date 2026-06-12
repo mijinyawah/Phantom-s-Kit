@@ -1028,6 +1028,10 @@
             cls: "✓ Good rift regen from chest + legs.",
             grenade: "Below 100 — push with mods for secondary cooldown bonus.",
           },
+          artifactChoice: {
+            name: "Hunter's Journal",
+            why: "Best fit for this Void brawler loop. Shieldcrush now keys off your melee and grenade stats, so it directly rewards Overshield-driven close-range play."
+          },
           artifact: [
             { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Rapid Fire" },
             { col: 2, text: "Diviner's Discount — scavenger mods cost 1 energy" },
@@ -1064,6 +1068,10 @@
             cls: "Low — Noble Seekers refund Class energy when they reach allies.",
             grenade: "Push to 100+ with Grenade Font for secondary bonus.",
           },
+          artifactChoice: {
+            name: "Queensfoil Censer",
+            why: "Best fit for the Solar support version. Heart of the Flame and Torch still lean into stronger Solar teamplay and Super damage windows."
+          },
           artifact: [
             { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Shotgun" },
             { col: 2, text: "Flame, Fiber, and Freeze — Solar Orbs on every Solar kill" },
@@ -1098,6 +1106,10 @@
             health: "Legacy Transversive contributes nothing. Push with Health mods.",
             cls: "Very low — Devour healing covers survivability. Rifting rarely needed in casual.",
             grenade: "Solid for casual. Push toward 100+ with mods.",
+          },
+          artifactChoice: {
+            name: "Hunter's Journal",
+            why: "Best fit for the sword-and-sprint version. Hunter's Journal still carries the strongest sword-side perks and Shieldcrush for aggressive Void movement builds."
           },
           artifact: [
             { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Rapid Fire" },
@@ -1136,6 +1148,10 @@
             cls: "Low Barricade — Sunspot + Hallowfire cover ability uptime.",
             grenade: "✅ Over 100 — secondary Grenade bonus active (vault Hallowfire required).",
           },
+          artifactChoice: {
+            name: "Queensfoil Censer",
+            why: "Best fit for Solar Sunspot Titan. Queensfoil Censer is still the cleanest Solar artifact pick for ignition-heavy play and stronger Super burst windows."
+          },
           artifact: [
             { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Shotgun" },
             { col: 2, text: "Flame, Fiber, and Freeze — Solar Orbs on every Solar kill" },
@@ -1171,6 +1187,10 @@
             health: "MW Mask of the Quiet One (MW1→10) pushes over 100 for secondary bonus.",
             cls: "Low Barricade — Ward of Dawn energy comes from Orbs and kills.",
             grenade: "Push to 100+ with mods for secondary bonus.",
+          },
+          artifactChoice: {
+            name: "Tablet of Ruin",
+            why: "Best fit for Void anchor play. Tablet of Ruin keeps the strongest Void-facing package, especially Volatile Marksman and its broader Void/elemental payoff."
           },
           artifact: [
             { col: 1, text: "Anti-Barrier Scout/Pulse · Unstoppable HC/Sidearm · Overload Shotgun" },
@@ -1398,6 +1418,7 @@
           <div class="pill-row">
             <span class="pill">${escapeHtml(build.subclass)}</span>
             <span class="pill exotic">✦ ${escapeHtml(build.exotic)}</span>
+            ${build.artifactChoice ? `<span class="pill note">Artifact: ${escapeHtml(build.artifactChoice.name)}</span>` : ""}
             ${build.warn ? `<span class="pill warn">${escapeHtml(build.warn)}</span>` : ""}
             ${build.note ? `<span class="pill note">${escapeHtml(build.note)}</span>` : ""}
           </div>
@@ -1447,6 +1468,8 @@
             </div>
             <section class="detail-card">
               <div class="section-kicker">Artifact Picks</div>
+              ${build.artifactChoice ? `<p class="detail-note"><strong>Recommended Artifact:</strong> ${escapeHtml(build.artifactChoice.name)}. ${escapeHtml(build.artifactChoice.why)}</p>` : ""}
+              <p class="helper-text">Artifacts 2.0 now lets you choose from seven legacy artifacts and slot up to seven perks across three buckets. These picks assume the recommended artifact above.</p>
               <div class="artifact-list">
                 ${build.artifact.map((entry) => `
                   <div class="artifact-row">
