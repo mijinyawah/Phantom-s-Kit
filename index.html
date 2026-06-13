@@ -1454,6 +1454,7 @@
       const recommendations = S.liveInventory ? getRecommendations(S.char, S.liveInventory) : null;
       const upgrades = S.liveInventory ? getLegendaryUpgrades(S.char, S.liveInventory) : [];
       const audit = S.liveInventory ? getInventoryAudit(S.char, S.liveInventory, build) : null;
+      const resolved = getResolvedBuildPresentation(S.char, build, audit, S.liveInventory);
       mount.innerHTML = `
         <article class="card">
           <div class="eyebrow">${escapeHtml(CHARS[S.char].label)} · ${escapeHtml(ACT_LABEL[S.activity])}</div>
@@ -1466,18 +1467,19 @@
             ${build.note ? `<span class="pill note">${escapeHtml(build.note)}</span>` : ""}
           </div>
           <p class="concept">${escapeHtml(build.concept)}</p>
+          ${S.liveInventory ? `<p class="helper-text">Synced recommendation: this top section updates from your owned gear whenever you resync.</p>` : ""}
 
           <div class="gear-grid">
             <section class="panel">
               <h3>Armor</h3>
               <div class="item-list">
-                ${build.armor.map((item) => renderGearRow(item, false, build)).join("")}
+                ${resolved.armor.map((item) => renderGearRow(item, false, build)).join("")}
               </div>
             </section>
             <section class="panel">
               <h3>Weapons</h3>
               <div class="item-list">
-                ${build.weapons.map((item) => renderGearRow(item, true, build)).join("")}
+                ${resolved.weapons.map((item) => renderGearRow(item, true, build)).join("")}
               </div>
             </section>
           </div>
@@ -1494,18 +1496,18 @@
           </button>
 
           <div class="details ${S.showDetails ? "open" : ""}" id="detailsSection">
-            ${renderStatsGrid(build)}
+            ${renderStatsGrid(build, resolved)}
             <div class="detail-grid">
               <section class="detail-card">
                 <div class="section-kicker">Armor Details</div>
                 <div class="detail-list">
-                  ${build.armor.map((piece) => renderArmorDetail(piece, build)).join("")}
+                  ${resolved.armor.map((piece) => renderArmorDetail(piece, build)).join("")}
                 </div>
               </section>
               <section class="detail-card">
                 <div class="section-kicker">Weapon Details</div>
                 <div class="detail-list">
-                  ${build.weapons.map((weapon) => renderWeaponDetail(weapon)).join("")}
+                  ${resolved.weapons.map((weapon) => renderWeaponDetail(weapon)).join("")}
                 </div>
               </section>
             </div>
@@ -1560,7 +1562,8 @@
       `;
     }
 
-    function renderStatsGrid(build) {
+    function renderStatsGrid(build, resolved) {
+      const source = resolved && resolved.stats ? resolved.stats : build.stats;
       const statMeta = [
         { key: "health", label: "Health", note: build.statNotes.health },
         { key: "cls", label: "Class", note: build.statNotes.cls },
@@ -1569,7 +1572,7 @@
       return `
         <div class="stats-grid">
           ${statMeta.map((stat) => {
-            const value = build.stats[stat.key];
+            const value = source[stat.key];
             const tone = getStatTone(value);
             return `
               <section class="stat-card">
@@ -1916,6 +1919,14 @@
       ].filter((item) => armorSlots.includes(item.slot) && (item.classType === myClassType || item.classType === 3));
     }
 
+    function getAllOwnedItems(liveInventory) {
+      if (!liveInventory) return [];
+      return [
+        ...Object.values(liveInventory.byChar || {}).flatMap((c) => [...(c.equipped || []), ...(c.inventory || [])]),
+        ...(liveInventory.vault || []),
+      ];
+    }
+
     function getBuildArmorUsage(char) {
       const usage = new Map();
       const charBuilds = BUILDS[char] || {};
@@ -2067,6 +2078,59 @@
         grenade: currentBuild && currentBuild.stats && currentBuild.stats.grenade || 0,
         classKey: getClassAbilityStatKey(char),
       };
+    }
+
+    function getResolvedBuildPresentation(char, build, audit, liveInventory) {
+      const resolved = {
+        armor: build.armor.map((piece) => ({ ...piece })),
+        weapons: build.weapons.map((weapon) => ({ ...weapon })),
+        stats: build.stats,
+        statsLabel: "Template stats",
+      };
+
+      if (audit && audit.solvedSets && audit.solvedSets.length) {
+        const best = audit.solvedSets[0];
+        const itemBySlot = Object.fromEntries(best.items.map((item) => [normalizeArmorSlot(item.slot), item]));
+        resolved.armor = build.armor.map((piece) => {
+          const slotKey = normalizeArmorSlot(piece.slot);
+          const livePiece = itemBySlot[slotKey];
+          if (!livePiece) return { ...piece };
+          return {
+            ...piece,
+            name: livePiece.name,
+            loc: livePiece.loc,
+            exotic: livePiece.isExotic,
+            h: livePiece.stats && livePiece.stats.resilience || 0,
+            c: livePiece.classAbility && livePiece.classAbility.value || 0,
+            g: livePiece.stats && livePiece.stats.discipline || 0,
+            note: `Live pick · Total ${livePiece.totalStats || 0}${livePiece.classAbility && livePiece.classAbility.value ? ` · Class ${livePiece.classAbility.value}` : ""}${livePiece.stats && livePiece.stats.discipline ? ` · Grenade ${livePiece.stats.discipline}` : ""}${livePiece.power ? ` · Power ${livePiece.power}` : ""}`,
+            mw: Number.isFinite(piece.mw) ? piece.mw : 0,
+          };
+        });
+        resolved.stats = {
+          health: best.totals.health,
+          cls: best.totals.classAbility,
+          grenade: best.totals.grenade,
+        };
+        resolved.statsLabel = "Live solved set stats";
+      }
+
+      if (liveInventory) {
+        const ownedItems = getAllOwnedItems(liveInventory);
+        resolved.weapons = build.weapons.map((weapon) => {
+          const matches = ownedItems.filter((item) => item.name === weapon.name);
+          if (!matches.length) return { ...weapon };
+          const bestMatch = matches.sort((a, b) => (b.power || 0) - (a.power || 0))[0];
+          return {
+            ...weapon,
+            loc: bestMatch.loc,
+            pw: bestMatch.power || weapon.pw,
+            note: [weapon.note, bestMatch.loc ? `Live location: ${locationLabel(bestMatch.loc)}` : ""].filter(Boolean).join(" · "),
+          };
+        });
+      }
+
+      return resolved;
     }
 
     function scoreSetAgainstBuild(char, setItems, currentBuild) {
