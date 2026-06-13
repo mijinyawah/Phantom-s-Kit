@@ -1670,6 +1670,35 @@
 
     function renderInventoryAudit(audit) {
       const slotOrder = ["Helmet", "Arms", "Chest", "Legs", "Class"];
+      const comparisonBlock = audit.comparison ? `
+        <div class="slot-group">
+          <h5>Current vs Best Solved Set</h5>
+          <div class="inventory-list">
+            <div class="inventory-entry">
+              <div class="inventory-head">
+                <div class="detail-title">
+                  <span>Current equipped armor</span>
+                </div>
+                <span class="badge loc-char">Current</span>
+              </div>
+              <div class="helper-text">${escapeHtml(audit.comparison.currentNames.join(" · "))}</div>
+              <div class="helper-text">Health ${audit.comparison.current.health} · Class ${audit.comparison.current.classAbility} · Grenade ${audit.comparison.current.grenade} · Total ${audit.comparison.current.totalStats} · Avg Power ${audit.comparison.current.avgPower}</div>
+            </div>
+            <div class="inventory-entry">
+              <div class="inventory-head">
+                <div class="detail-title">
+                  <span>Best solved set</span>
+                  ${audit.comparison.best.hasRecommendedExotic ? `<span class="item-name exotic">Includes ${escapeHtml(audit.comparison.best.recommendedExoticName)}</span>` : ""}
+                </div>
+                <span class="badge loc-vault">Solved</span>
+              </div>
+              <div class="helper-text">${escapeHtml(audit.comparison.bestNames.join(" · "))}</div>
+              <div class="helper-text">Health ${audit.comparison.best.totals.health} · Class ${audit.comparison.best.totals.classAbility} · Grenade ${audit.comparison.best.totals.grenade} · Total ${audit.comparison.best.totals.totalStats} · Avg Power ${Math.round(audit.comparison.best.totals.power / Math.max(audit.comparison.best.items.length, 1))}</div>
+              <div class="helper-text">Delta: Health ${formatSigned(audit.comparison.delta.health)} · Class ${formatSigned(audit.comparison.delta.classAbility)} · Grenade ${formatSigned(audit.comparison.delta.grenade)} · Total ${formatSigned(audit.comparison.delta.totalStats)} · Power ${formatSigned(audit.comparison.delta.avgPower)}</div>
+            </div>
+          </div>
+        </div>
+      ` : "";
       const solvedSetsBlock = audit.solvedSets && audit.solvedSets.length ? `
         <div class="slot-group">
           <h5>Top Solved Sets</h5>
@@ -1735,7 +1764,7 @@
         </div>
       ` : "";
 
-      return `${solvedSetsBlock}${slotBlocks}${upgradeBlock}`;
+      return `${comparisonBlock}${solvedSetsBlock}${slotBlocks}${upgradeBlock}`;
     }
 
     function renderInventoryItem(item, highlightName) {
@@ -1972,11 +2001,63 @@
           mw: piece.mw,
         }));
 
+      const solvedSets = solveArmorSets(char, bySlot, currentBuild);
+
       return {
         bySlot,
         upgradePriorities,
-        solvedSets: solveArmorSets(char, bySlot, currentBuild),
+        solvedSets,
+        comparison: getSetComparison(char, liveInventory, solvedSets),
       };
+    }
+
+    function getCurrentEquippedArmorSet(char, liveInventory) {
+      const myChar = getLiveCharacterRecord(char);
+      if (!myChar) return null;
+      const armorSlots = new Set(["Helmet", "Arms", "Chest", "Legs", "Class"]);
+      const items = (myChar.equipped || []).filter((item) => armorSlots.has(normalizeArmorSlot(item.slot)));
+      if (!items.length) return null;
+      const totals = items.reduce((acc, item) => {
+        acc.health += item.stats && item.stats.resilience || 0;
+        acc.classAbility += item.classAbility && item.classAbility.value || 0;
+        acc.grenade += item.stats && item.stats.discipline || 0;
+        acc.totalStats += item.totalStats || 0;
+        acc.power += item.power || 0;
+        return acc;
+      }, { health: 0, classAbility: 0, grenade: 0, totalStats: 0, power: 0 });
+      return {
+        items,
+        totals,
+        avgPower: Math.round(totals.power / Math.max(items.length, 1)),
+      };
+    }
+
+    function getSetComparison(char, liveInventory, solvedSets) {
+      const current = getCurrentEquippedArmorSet(char, liveInventory);
+      const best = solvedSets && solvedSets[0];
+      if (!current || !best) return null;
+      const bestAvgPower = Math.round(best.totals.power / Math.max(best.items.length, 1));
+      return {
+        current: {
+          ...current.totals,
+          avgPower: current.avgPower,
+        },
+        best,
+        currentNames: current.items.map((item) => `${normalizeArmorSlot(item.slot)}: ${item.name}`),
+        bestNames: best.items.map((item) => `${normalizeArmorSlot(item.slot)}: ${item.name}`),
+        delta: {
+          health: best.totals.health - current.totals.health,
+          classAbility: best.totals.classAbility - current.totals.classAbility,
+          grenade: best.totals.grenade - current.totals.grenade,
+          totalStats: best.totals.totalStats - current.totals.totalStats,
+          avgPower: bestAvgPower - current.avgPower,
+        },
+      };
+    }
+
+    function formatSigned(value) {
+      if (value > 0) return `+${value}`;
+      return String(value);
     }
 
     function getBuildTargetStats(char, currentBuild) {
